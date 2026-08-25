@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- Outer Frame / Shadow Shape -->
+  <rect x="6" y="8" width="52" height="52" rx="14" fill="#000000" />
+  <!-- Main Badge with Polish Flag Split Background -->
+  <rect x="4" y="4" width="52" height="52" rx="12" fill="#FFFFFF" stroke="#000000" stroke-width="3.5" />
+  <path d="M4 30H56V44C56 50.6274 50.6274 56 44 56H16C9.37258 56 4 50.6274 4 44V30Z" fill="#DC2626" stroke="#000000" stroke-width="3.5" />
+  
+  <!-- Open Book Symbol in the Center -->
+  <g transform="translate(10, 14)">
+    <!-- Book Pages Outline -->
+    <path d="M3 24C9 21 16 21 22 23.5C28 21 35 21 41 24V6C35 3 28 3 22 5.5C16 3 9 3 3 6V24Z" fill="#FFFBEB" stroke="#000000" stroke-width="2.5" stroke-linejoin="round"/>
+    <!-- Book Center Spine -->
+    <line x1="22" y1="5.5" x2="22" y2="23.5" stroke="#000000" stroke-width="2.5" stroke-linecap="round"/>
+    
+    <!-- Golden "2" on Left Page -->
+    <text x="12" y="17" font-family="Arial, Helvetica, sans-serif" font-weight="900" font-size="12" fill="#000000" text-anchor="middle">2</text>
+    
+    <!-- Bookmark Ribbon / Star on Right Page -->
+    <path d="M29 5L33 13L29 11L25 13L29 5Z" fill="#FFE500" stroke="#000000" stroke-width="1" />
+  </g>
+
+  <!-- Cute Graduation Cap / Star Accent Top Right -->
+  <polygon points="50,4 53,11 60,11 54,15 57,22 50,17 43,22 46,15 40,11 47,11" fill="#FFE500" stroke="#000000" stroke-width="1.5" />
+</svg>

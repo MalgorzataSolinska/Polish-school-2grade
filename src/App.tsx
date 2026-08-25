@@ -44,8 +44,9 @@ export default function App() {
     }
   });
 
-  // Initial Data Fetching from Server Database
+  // Initial Data Fetching from Server Database & Page Title
   useEffect(() => {
+    document.title = '2 klasa | Polska Szkoła';
     fetchData();
   }, []);
 
