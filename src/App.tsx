@@ -21,22 +21,51 @@ import {
   SchoolDatabaseState
 } from './firebase';
 
+const LOCAL_STORAGE_KEY = 'szkolka_cloud_data_cache_v3';
+
+function getInitialCachedState(): Partial<SchoolDatabaseState> {
+  try {
+    const cached = localStorage.getItem(LOCAL_STORAGE_KEY);
+    if (cached) return JSON.parse(cached);
+  } catch (e) {}
+  return {};
+}
+
 export default function App() {
+  const cached = getInitialCachedState();
   const [activeTab, setActiveTab] = useState<TabType>('home');
   const [targetSummaryDate, setTargetSummaryDate] = useState<string | undefined>(undefined);
-  const [classEvents, setClassEvents] = useState<ClassEvent[]>(INITIAL_CLASS_EVENTS);
+  const [isCloudSyncDone, setIsCloudSyncDone] = useState<boolean>(
+    Boolean(cached.announcements || cached.classEvents)
+  );
+
+  const [classEvents, setClassEvents] = useState<ClassEvent[]>(
+    cached.classEvents && cached.classEvents.length > 0 ? cached.classEvents : INITIAL_CLASS_EVENTS
+  );
 
   const handleNavigateToSummary = (dateStr: string) => {
     setTargetSummaryDate(dateStr);
     setActiveTab('summaries');
   };
 
-  const [announcements, setAnnouncements] = useState<Announcement[]>(INITIAL_ANNOUNCEMENTS);
-  const [dailyTask, setDailyTask] = useState<DailyTask | null>(INITIAL_DAILY_TASKS[0] || null);
-  const [allDailyTasks, setAllDailyTasks] = useState<DailyTask[]>(INITIAL_DAILY_TASKS);
-  const [classSummaries, setClassSummaries] = useState<ClassSummary[]>(INITIAL_CLASS_SUMMARIES);
-  const [worksheets, setWorksheets] = useState<Worksheet[]>(INITIAL_WORKSHEETS);
-  const [messages, setMessages] = useState<FeedbackMessage[]>(INITIAL_FEEDBACK_MESSAGES);
+  const [announcements, setAnnouncements] = useState<Announcement[]>(
+    Array.isArray(cached.announcements) ? cached.announcements : []
+  );
+  const [allDailyTasks, setAllDailyTasks] = useState<DailyTask[]>(
+    cached.dailyTasks && cached.dailyTasks.length > 0 ? cached.dailyTasks : INITIAL_DAILY_TASKS
+  );
+  const [dailyTask, setDailyTask] = useState<DailyTask | null>(
+    (cached.dailyTasks && cached.dailyTasks.length > 0 ? cached.dailyTasks[0] : INITIAL_DAILY_TASKS[0]) || null
+  );
+  const [classSummaries, setClassSummaries] = useState<ClassSummary[]>(
+    cached.classSummaries && cached.classSummaries.length > 0 ? cached.classSummaries : INITIAL_CLASS_SUMMARIES
+  );
+  const [worksheets, setWorksheets] = useState<Worksheet[]>(
+    cached.worksheets && cached.worksheets.length > 0 ? cached.worksheets : INITIAL_WORKSHEETS
+  );
+  const [messages, setMessages] = useState<FeedbackMessage[]>(
+    cached.feedbackMessages || INITIAL_FEEDBACK_MESSAGES
+  );
 
   const [isAdminOpen, setIsAdminOpen] = useState(false);
 
@@ -55,23 +84,25 @@ export default function App() {
 
     // Subscribe to Firestore for real-time live data updates
     const unsubscribe = subscribeToSchoolData((cloudData: SchoolDatabaseState) => {
-      if (cloudData.announcements && cloudData.announcements.length > 0) {
+      setIsCloudSyncDone(true);
+
+      if (Array.isArray(cloudData.announcements)) {
         setAnnouncements(cloudData.announcements);
       }
-      if (cloudData.dailyTasks && cloudData.dailyTasks.length > 0) {
+      if (Array.isArray(cloudData.dailyTasks) && cloudData.dailyTasks.length > 0) {
         setAllDailyTasks(cloudData.dailyTasks);
         setDailyTask((prev) => {
           if (!prev) return cloudData.dailyTasks[0];
           return cloudData.dailyTasks.find((t) => t.id === prev.id) || cloudData.dailyTasks[0];
         });
       }
-      if (cloudData.classSummaries && cloudData.classSummaries.length > 0) {
+      if (Array.isArray(cloudData.classSummaries)) {
         setClassSummaries(cloudData.classSummaries);
       }
-      if (cloudData.worksheets && cloudData.worksheets.length > 0) {
+      if (Array.isArray(cloudData.worksheets)) {
         setWorksheets(cloudData.worksheets);
       }
-      if (cloudData.classEvents && cloudData.classEvents.length > 0) {
+      if (Array.isArray(cloudData.classEvents) && cloudData.classEvents.length > 0) {
         setClassEvents(cloudData.classEvents);
       }
       if (Array.isArray(cloudData.feedbackMessages)) {
@@ -305,6 +336,7 @@ export default function App() {
             classEvents={classEvents}
             onSendMessage={handleSendMessage}
             onGoToGames={() => setActiveTab('games')}
+            isCloudSyncDone={isCloudSyncDone}
           />
         )}
 

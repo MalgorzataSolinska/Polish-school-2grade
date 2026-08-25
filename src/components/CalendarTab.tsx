@@ -8,6 +8,11 @@ interface CalendarTabProps {
   onNavigateToSummary?: (dateStr: string) => void;
 }
 
+const POLISH_MONTHS = [
+  'Styczeń', 'Luty', 'Marzec', 'Kwiecień', 'Maj', 'Czerwiec',
+  'Lipiec', 'Sierpień', 'Wrzesień', 'Październik', 'Listopad', 'Grudzień'
+];
+
 export const CalendarTab: React.FC<CalendarTabProps> = ({ classEvents, summaries = [], onNavigateToSummary }) => {
   // Today calculation
   const today = new Date();
@@ -15,26 +20,63 @@ export const CalendarTab: React.FC<CalendarTabProps> = ({ classEvents, summaries
   const todayMonth = today.getMonth(); // 0 = Jan, 7 = Aug
   const todayDate = today.getDate();
 
-  const months = [
-    { name: 'Sierpień 2026', year: 2026, month: 7, daysInMonth: 31, startDayOfWeek: 5 }, // Aug 1 2026 is Saturday (index 5: Mon=0, Tue=1, Wed=2, Thu=3, Fri=4, Sat=5, Sun=6)
-    { name: 'Wrzesień 2026', year: 2026, month: 8, daysInMonth: 30, startDayOfWeek: 1 }, // Sept 1 2026 is Tuesday (index 1)
-    { name: 'Październik 2026', year: 2026, month: 9, daysInMonth: 31, startDayOfWeek: 3 }, // Oct 1 2026 is Thursday (index 3)
-    { name: 'Listopad 2026', year: 2026, month: 10, daysInMonth: 30, startDayOfWeek: 6 }, // Nov 1 2026 is Sunday (index 6)
-    { name: 'Grudzień 2026', year: 2026, month: 11, daysInMonth: 31, startDayOfWeek: 1 }, // Dec 1 2026 is Tuesday (index 1)
-  ];
-
-  // Auto detect current month index based on today
-  const foundCurrentMonthIdx = months.findIndex((m) => m.year === todayYear && m.month === todayMonth);
-  const [currentMonthIndex, setCurrentMonthIndex] = useState<number>(
-    foundCurrentMonthIdx !== -1 ? foundCurrentMonthIdx : 0
-  );
-
   // Sort class events chronologically by isoDate
   const sortedEvents = [...classEvents].sort((a, b) => a.isoDate.localeCompare(b.isoDate));
 
   // Find next/current event index or fallback to first
   const currentEvent = sortedEvents.find((e) => e.status === 'next') || sortedEvents[0];
   const [selectedEventId, setSelectedEventId] = useState<string>(currentEvent?.id || sortedEvents[0]?.id || '');
+
+  // Dynamic View Year & Month state
+  const [viewYear, setViewYear] = useState<number>(() => {
+    if (currentEvent?.isoDate) {
+      const [y] = currentEvent.isoDate.split('-').map(Number);
+      if (!isNaN(y)) return y;
+    }
+    return todayYear;
+  });
+
+  const [viewMonth, setViewMonth] = useState<number>(() => {
+    if (currentEvent?.isoDate) {
+      const [, m] = currentEvent.isoDate.split('-').map(Number);
+      if (!isNaN(m)) return m - 1;
+    }
+    return todayMonth;
+  });
+
+  // Calculate days in current view month and start day of week (Monday=0 ... Sunday=6)
+  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+  const rawFirstDay = new Date(viewYear, viewMonth, 1).getDay(); // Sunday=0, Monday=1, ...
+  const startDayOfWeek = (rawFirstDay + 6) % 7; // Monday=0, Tuesday=1 ... Sunday=6
+
+  const handlePrevMonth = () => {
+    if (viewMonth === 0) {
+      setViewMonth(11);
+      setViewYear((y) => y - 1);
+    } else {
+      setViewMonth((m) => m - 1);
+    }
+  };
+
+  const handleNextMonth = () => {
+    if (viewMonth === 11) {
+      setViewMonth(0);
+      setViewYear((y) => y + 1);
+    } else {
+      setViewMonth((m) => m + 1);
+    }
+  };
+
+  const handleSelectEvent = (ev: ClassEvent) => {
+    setSelectedEventId(ev.id);
+    if (ev.isoDate) {
+      const [y, m] = ev.isoDate.split('-').map(Number);
+      if (!isNaN(y) && !isNaN(m)) {
+        setViewYear(y);
+        setViewMonth(m - 1);
+      }
+    }
+  };
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const currentEventRef = useRef<HTMLDivElement>(null);
@@ -58,13 +100,11 @@ export const CalendarTab: React.FC<CalendarTabProps> = ({ classEvents, summaries
     }
   }, [sortedEvents]);
 
-  const currentMonth = months[currentMonthIndex];
-
   // Helper: Find class event on a specific day of the current month
   const getEventForDay = (dayNumber: number) => {
-    const monthFormatted = (currentMonth.month + 1).toString().padStart(2, '0');
+    const monthFormatted = (viewMonth + 1).toString().padStart(2, '0');
     const dayFormatted = dayNumber.toString().padStart(2, '0');
-    const targetIso = `${currentMonth.year}-${monthFormatted}-${dayFormatted}`;
+    const targetIso = `${viewYear}-${monthFormatted}-${dayFormatted}`;
 
     return sortedEvents.find((e) => e.isoDate === targetIso);
   };
@@ -98,22 +138,26 @@ export const CalendarTab: React.FC<CalendarTabProps> = ({ classEvents, summaries
           {/* Month Header Navigation */}
           <div className="flex items-center justify-between gap-2 mb-6 pb-4 border-b-3 border-black">
             <button
-              onClick={() => setCurrentMonthIndex((prev) => Math.max(0, prev - 1))}
-              disabled={currentMonthIndex === 0}
-              className="p-2.5 rounded-xl border-2 border-black bg-yellow-200 hover:bg-yellow-300 disabled:opacity-40 disabled:hover:bg-yellow-200 cursor-pointer transition shadow-[2px_2px_0px_black]"
+              onClick={handlePrevMonth}
+              className="p-2.5 rounded-xl border-2 border-black bg-yellow-200 hover:bg-yellow-300 cursor-pointer transition shadow-[2px_2px_0px_black] flex items-center gap-1 font-black text-xs uppercase"
+              title="Poprzedni miesiąc"
             >
               <ChevronLeft className="w-5 h-5 text-black" />
+              <span className="hidden sm:inline">Poprzedni</span>
             </button>
 
-            <h3 className="text-xl sm:text-2xl font-black text-black uppercase tracking-tight">
-              {currentMonth.name}
-            </h3>
+            <div className="text-center">
+              <h3 className="text-xl sm:text-2xl font-black text-black uppercase tracking-tight">
+                {POLISH_MONTHS[viewMonth]} {viewYear}
+              </h3>
+            </div>
 
             <button
-              onClick={() => setCurrentMonthIndex((prev) => Math.min(months.length - 1, prev + 1))}
-              disabled={currentMonthIndex === months.length - 1}
-              className="p-2.5 rounded-xl border-2 border-black bg-yellow-200 hover:bg-yellow-300 disabled:opacity-40 disabled:hover:bg-yellow-200 cursor-pointer transition shadow-[2px_2px_0px_black]"
+              onClick={handleNextMonth}
+              className="p-2.5 rounded-xl border-2 border-black bg-yellow-200 hover:bg-yellow-300 cursor-pointer transition shadow-[2px_2px_0px_black] flex items-center gap-1 font-black text-xs uppercase"
+              title="Następny miesiąc"
             >
+              <span className="hidden sm:inline">Następny</span>
               <ChevronRight className="w-5 h-5 text-black" />
             </button>
           </div>
@@ -137,17 +181,17 @@ export const CalendarTab: React.FC<CalendarTabProps> = ({ classEvents, summaries
           {/* Days grid */}
           <div className="grid grid-cols-7 gap-1 sm:gap-2">
             {/* Empty offset padding for days before month starts */}
-            {Array.from({ length: currentMonth.startDayOfWeek }).map((_, idx) => (
+            {Array.from({ length: startDayOfWeek }).map((_, idx) => (
               <div key={`empty-${idx}`} className="h-16 sm:h-20 bg-gray-50 rounded-xl border border-gray-200 opacity-30"></div>
             ))}
 
             {/* Days of current month */}
-            {Array.from({ length: currentMonth.daysInMonth }).map((_, idx) => {
+            {Array.from({ length: daysInMonth }).map((_, idx) => {
               const dayNum = idx + 1;
               const event = getEventForDay(dayNum);
               const isSelected = event && event.id === selectedEventId;
-              const isSaturday = (currentMonth.startDayOfWeek + idx) % 7 === 5; // Saturday column index
-              const isToday = currentMonth.year === todayYear && currentMonth.month === todayMonth && dayNum === todayDate;
+              const isSaturday = (startDayOfWeek + idx) % 7 === 5; // Saturday column index
+              const isToday = viewYear === todayYear && viewMonth === todayMonth && dayNum === todayDate;
 
               return (
                 <div
@@ -335,7 +379,7 @@ export const CalendarTab: React.FC<CalendarTabProps> = ({ classEvents, summaries
                   <div
                     key={ev.id}
                     ref={isCurrentNext ? currentEventRef : null}
-                    onClick={() => setSelectedEventId(ev.id)}
+                    onClick={() => handleSelectEvent(ev)}
                     className={`p-2.5 rounded-2xl border-2 border-black text-left text-xs font-black transition cursor-pointer flex items-center justify-between gap-2 ${
                       isSelected
                         ? 'bg-[#FFD700] shadow-[3px_3px_0px_black] ring-2 ring-black'

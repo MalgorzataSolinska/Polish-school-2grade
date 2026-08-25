@@ -17,6 +17,7 @@ interface HomeTabProps {
   classEvents: ClassEvent[];
   onSendMessage: (msgData: { studentName: string; parentEmail: string; rating: 'super' | 'ok' | 'slabo'; message: string }) => void;
   onGoToGames?: () => void;
+  isCloudSyncDone?: boolean;
 }
 
 export const HomeTab: React.FC<HomeTabProps> = ({
@@ -27,6 +28,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({
   classEvents,
   onSendMessage,
   onGoToGames,
+  isCloudSyncDone = true,
 }) => {
   // Find next class based on today's date or marked status
   const today = new Date();
@@ -136,22 +138,44 @@ export const HomeTab: React.FC<HomeTabProps> = ({
           </h2>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {announcements.map((ann) => (
-            <div
-              key={ann.id}
-              className="bg-white text-black p-4 rounded-2xl border-3 border-black shadow-[4px_4px_0px_black] flex flex-col justify-between"
-            >
-              <div>
-                <span className="text-[10px] font-black bg-yellow-300 text-black border border-black px-2 py-0.5 rounded-md uppercase inline-block mb-2">
-                  {ann.date}
-                </span>
-                <h3 className="text-sm font-black text-black leading-snug">{ann.title}</h3>
-                <p className="text-xs text-gray-800 font-bold mt-2 leading-relaxed">{ann.content}</p>
+        {/* Announcements list / loading / empty */}
+        {!isCloudSyncDone && announcements.length === 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {[1, 2, 3].map((i) => (
+              <div
+                key={`ann-skel-${i}`}
+                className="bg-white/80 p-4 rounded-2xl border-3 border-black shadow-[4px_4px_0px_black] animate-pulse space-y-2"
+              >
+                <div className="h-4 w-24 bg-gray-300 rounded border border-black"></div>
+                <div className="h-5 w-3/4 bg-gray-300 rounded"></div>
+                <div className="h-10 w-full bg-gray-200 rounded"></div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : announcements.length === 0 ? (
+          <div className="bg-white text-black p-6 rounded-2xl border-3 border-black shadow-[4px_4px_0px_black] text-center">
+            <p className="text-sm font-black text-gray-800">
+              Brak nowych ogłoszeń w tym tygodniu. Życzymy udanej nauki i do zobaczenia w sobotę! 🎒✨
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {announcements.map((ann) => (
+              <div
+                key={ann.id}
+                className="bg-white text-black p-4 rounded-2xl border-3 border-black shadow-[4px_4px_0px_black] flex flex-col justify-between"
+              >
+                <div>
+                  <span className="text-[10px] font-black bg-yellow-300 text-black border border-black px-2 py-0.5 rounded-md uppercase inline-block mb-2">
+                    {ann.date}
+                  </span>
+                  <h3 className="text-sm font-black text-black leading-snug">{ann.title}</h3>
+                  <p className="text-xs text-gray-800 font-bold mt-2 leading-relaxed">{ann.content}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* 4. KONTAKT Z NAUCZYCIELKA */}

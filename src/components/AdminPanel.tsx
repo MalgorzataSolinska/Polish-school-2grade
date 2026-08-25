@@ -121,6 +121,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [editingWsId, setEditingWsId] = useState<string | null>(null);
   const [editingSummaryId, setEditingSummaryId] = useState<string | null>(null);
+  const [eventNotification, setEventNotification] = useState<string | null>(null);
 
   // Password Form State
   const [currPassInput, setCurrPassInput] = useState('');
@@ -338,29 +339,68 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     playSuccessSound();
   };
 
+  const handleDateChange = (iso: string) => {
+    setEvIsoDate(iso);
+    if (!iso) return;
+    try {
+      const [y, m, d] = iso.split('-').map(Number);
+      const dt = new Date(y, m - 1, d);
+      const days = ['Niedziela', 'Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota'];
+      const months = [
+        'Stycznia', 'Lutego', 'Marca', 'Kwietnia', 'Maja', 'Czerwca',
+        'Lipca', 'Sierpnia', 'Września', 'Października', 'Listopada', 'Grudnia'
+      ];
+      const dayName = days[dt.getDay()];
+      const monthName = months[m - 1];
+      setEvDateStr(`${dayName}, ${d} ${monthName} ${y}`);
+
+      // Auto-load existing event for this date so editing is seamless
+      const existing = classEvents.find((e) => e.isoDate === iso);
+      if (existing) {
+        setEditingEventId(existing.id);
+        setEvTopic(existing.topic);
+        setEvTime(existing.time || '09:30 - 14:30');
+        setEvRoom(existing.room || 'Sala nr 14');
+        setEvIsHoliday(!!existing.isHoliday);
+        setEvNotes(existing.notes || '');
+      } else if (editingEventId) {
+        setEditingEventId(null);
+      }
+    } catch (e) {}
+  };
+
   const handleAddEventSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!evTopic) return;
 
-    const eventId = editingEventId || `ev-${Date.now()}`;
+    // Check if an event for this ISO date already exists in the calendar
+    const existingSameDate = classEvents.find((e) => e.isoDate === evIsoDate.trim());
+    const eventId = editingEventId || (existingSameDate ? existingSameDate.id : `ev-${Date.now()}`);
+
     const newEv: ClassEvent = {
       id: eventId,
-      dateStr: evDateStr,
+      dateStr: evDateStr.trim(),
       dayOfWeek: 'Sobota',
-      isoDate: evIsoDate,
-      time: evTime || '09:30 - 14:30',
-      topic: evTopic,
-      room: evIsHoliday ? '—' : (evRoom || 'Sala nr 14'),
-      isHoliday: evIsHoliday,
-      notes: evNotes || undefined,
+      isoDate: evIsoDate.trim(),
+      time: (evTime || '09:30 - 14:30').trim(),
+      topic: evTopic.trim(),
+      room: evIsHoliday ? '—' : (evRoom || 'Sala nr 14').trim(),
+      isHoliday: !!evIsHoliday,
+      notes: (evNotes || '').trim(),
     };
 
-    if (editingEventId && onEditClassEvent) {
+    if ((editingEventId || existingSameDate) && onEditClassEvent) {
       onEditClassEvent(newEv);
       setEditingEventId(null);
     } else {
       onAddClassEvent(newEv);
     }
+
+    setEventNotification('✅ Zapisano pomyślnie w chmurze! Temat lekcji i data są już zsynchronizowane.');
+    setTimeout(() => {
+      setEventNotification(null);
+    }, 4000);
+
     setEvTopic('');
     setEvNotes('');
     playSuccessSound();
@@ -844,51 +884,104 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               {/* TAB 3: KALENDARZ ZAJĘĆ */}
               {activeAdminTab === 'calendar' && (
                 <div className="space-y-6">
+                  {/* Event Notification Banner */}
+                  {eventNotification && (
+                    <div className="p-4 bg-emerald-500 text-white rounded-2xl border-3 border-black shadow-[4px_4px_0px_black] font-black text-xs flex items-center justify-between animate-bounce">
+                      <span>{eventNotification}</span>
+                      <button
+                        onClick={() => setEventNotification(null)}
+                        className="text-white hover:text-black ml-2 text-sm font-bold"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Szybka edycja najbliższego zjazdu */}
+                  {(() => {
+                    const today = new Date();
+                    const todayIso = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
+                    const sortedEv = [...classEvents].sort((a, b) => a.isoDate.localeCompare(b.isoDate));
+                    const nextEv = sortedEv.find((e) => e.isoDate >= todayIso && !e.isHoliday) || sortedEv.find((e) => e.status === 'next') || sortedEv[0];
+                    if (!nextEv) return null;
+
+                    return (
+                      <div className="bg-[#4F81FF] text-white p-5 rounded-2xl border-3 border-black shadow-[4px_4px_0px_black]">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                          <div>
+                            <span className="text-[10px] font-black bg-yellow-300 text-black px-2 py-0.5 rounded border border-black uppercase tracking-wider">
+                              ⭐ Najbliższy Zjazd (Karta na Stronie Głównej)
+                            </span>
+                            <h4 className="text-base font-black mt-1 text-white drop-shadow-[1px_1px_0px_black]">
+                              {nextEv.dateStr}
+                            </h4>
+                            <p className="text-xs font-bold text-yellow-100 mt-0.5">
+                              Temat: <span className="text-white underline">{nextEv.topic || '(Brak wpisanego tematu)'}</span> ({nextEv.time}, {nextEv.room})
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => startEditingEvent(nextEv)}
+                            className="bg-yellow-300 hover:bg-yellow-400 text-black border-2 border-black font-black px-4 py-2 rounded-xl text-xs uppercase cursor-pointer shadow-[2px_2px_0px_black] shrink-0 flex items-center gap-1.5 transition"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                            <span>Edytuj ten temat</span>
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
                   <div className="bg-white p-5 rounded-2xl border-3 border-black shadow-[4px_4px_0px_black]">
                     <h3 className="text-sm font-black text-black uppercase mb-1 flex items-center gap-2">
                       {editingEventId ? <Pencil className="w-4 h-4 text-amber-500" /> : <Plus className="w-4 h-4 text-[#FF4F81]" />}
-                      <span>{editingEventId ? 'Edytujesz Sobotę w Kalendarzu:' : 'Dodaj Sobotę do Kalendarza Szkolnego:'}</span>
+                      <span>{editingEventId ? 'Edytujesz Sobotę w Kalendarzu:' : 'Dodaj lub Zmień Temat Soboty w Kalendarzu:'}</span>
                     </h3>
                     <p className="text-xs font-bold text-gray-800 mb-3">
-                      Kalendarz rozpoczyna się od Sierpnia. Domyślne godziny to 9:30 - 14:30, Sala nr 14.
+                      Wybierz datę lub kliknij "Edytuj" na liście poniżej, wpisz temat zajęć i kliknij "Zapisz".
                     </p>
 
                     <form onSubmit={handleAddEventSubmit} className="space-y-3">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
-                          <label className="block text-[11px] font-black uppercase text-black mb-1">Wyświetlana data:</label>
+                          <label className="block text-[11px] font-black uppercase text-black mb-1">
+                            Wybierz Datę z Kalendarza (YYYY-MM-DD):
+                          </label>
+                          <input
+                            type="date"
+                            value={evIsoDate}
+                            onChange={(e) => handleDateChange(e.target.value)}
+                            required
+                            className="w-full px-3 py-2 rounded-xl border-2 border-black text-xs font-bold bg-yellow-50 cursor-pointer"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[11px] font-black uppercase text-black mb-1">
+                            Tytuł / Wyświetlany Dzień (np. Sobota, 12 Września):
+                          </label>
                           <input
                             type="text"
                             value={evDateStr}
                             onChange={(e) => setEvDateStr(e.target.value)}
                             required
-                            placeholder="Sobota, 22 Sierpnia 2026"
-                            className="w-full px-3 py-2 rounded-xl border-2 border-black text-xs font-bold bg-yellow-50"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-[11px] font-black uppercase text-black mb-1">Data ISO (YYYY-MM-DD):</label>
-                          <input
-                            type="text"
-                            value={evIsoDate}
-                            onChange={(e) => setEvIsoDate(e.target.value)}
-                            required
-                            placeholder="2026-08-22"
+                            placeholder="np. Sobota, 22 Sierpnia 2026"
                             className="w-full px-3 py-2 rounded-xl border-2 border-black text-xs font-bold bg-yellow-50"
                           />
                         </div>
                       </div>
 
                       <div>
-                        <label className="block text-[11px] font-black uppercase text-black mb-1">Temat lekcji / opis dnia:</label>
+                        <label className="block text-[11px] font-black uppercase text-black mb-1">
+                          Temat lekcji / opis dnia:
+                        </label>
                         <input
                           type="text"
                           value={evTopic}
                           onChange={(e) => setEvTopic(e.target.value)}
                           required
                           placeholder="np. Rozpoczęcie roku i zapoznanie z podręcznikami"
-                          className="w-full px-3 py-2 rounded-xl border-2 border-black text-xs font-bold bg-yellow-50"
+                          className="w-full px-3 py-2 rounded-xl border-2 border-black text-xs font-bold bg-yellow-50 focus:ring-2 focus:ring-amber-400"
                         />
                       </div>
 
@@ -934,7 +1027,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                             editingEventId ? 'bg-amber-500 hover:bg-amber-600' : 'bg-emerald-500 hover:bg-emerald-600'
                           }`}
                         >
-                          {editingEventId ? '💾 Zapisz Zmiany Soboty ✏️' : '+ Dodaj Sobotę do Kalendarza 📅'}
+                          {editingEventId ? '💾 Zapisz Temat i Zmiany w Chmurze ✏️' : '💾 Zapisz Sobotę do Kalendarza 📅'}
                         </button>
                         {editingEventId && (
                           <button
@@ -952,35 +1045,51 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                   {/* List of events with delete & edit */}
                   <div className="bg-white p-5 rounded-2xl border-3 border-black shadow-[4px_4px_0px_black]">
                     <h3 className="text-xs font-black uppercase tracking-wider text-black mb-3">
-                      Lista Sobót w Kalendarzu ({classEvents.length}):
+                      Lista Wszystkich Sobót w Kalendarzu ({classEvents.length}):
                     </h3>
-                    <div className="space-y-2">
-                      {classEvents.map((ev) => (
-                        <div key={ev.id} className="p-3 bg-yellow-50 rounded-xl border-2 border-black flex items-center justify-between gap-2 text-xs">
-                          <div>
-                            <span className="font-black text-black block">{ev.dateStr}</span>
-                            <p className="text-[11px] text-gray-800 font-bold">
-                              {ev.isHoliday ? '🛑 Dzień wolny od zajęć' : `${ev.topic} (${ev.time}, ${ev.room})`}
-                            </p>
+                    <div className="space-y-2 max-h-[380px] overflow-y-auto pr-1">
+                      {classEvents.map((ev) => {
+                        const isCurrentEditing = editingEventId === ev.id;
+                        return (
+                          <div
+                            key={ev.id}
+                            className={`p-3 rounded-xl border-2 border-black flex items-center justify-between gap-2 text-xs transition ${
+                              isCurrentEditing ? 'bg-amber-100 ring-2 ring-amber-500' : 'bg-yellow-50'
+                            }`}
+                          >
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="font-black text-black block">{ev.dateStr}</span>
+                                {isCurrentEditing && (
+                                  <span className="text-[10px] font-black bg-amber-500 text-white px-1.5 py-0.2 rounded border border-black">
+                                    Edytujesz teraz
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-[11px] text-gray-800 font-bold mt-0.5">
+                                {ev.isHoliday ? '🛑 Dzień wolny od zajęć' : `${ev.topic || '(Brak wpisanego tematu)'} (${ev.time}, ${ev.room})`}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <button
+                                onClick={() => startEditingEvent(ev)}
+                                className="px-2.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg border border-black font-black text-[11px] cursor-pointer transition flex items-center gap-1"
+                                title="Edytuj temat i dane"
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
+                                <span>Edytuj</span>
+                              </button>
+                              <button
+                                onClick={() => onDeleteClassEvent(ev.id)}
+                                className="p-1.5 bg-rose-500 hover:bg-rose-600 text-white rounded-lg border border-black cursor-pointer transition"
+                                title="Usuń z kalendarza"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-1.5 shrink-0">
-                            <button
-                              onClick={() => startEditingEvent(ev)}
-                              className="p-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg border border-black cursor-pointer transition"
-                              title="Edytuj sobotę"
-                            >
-                              <Pencil className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              onClick={() => onDeleteClassEvent(ev.id)}
-                              className="p-1.5 bg-rose-500 hover:bg-rose-600 text-white rounded-lg border border-black cursor-pointer transition"
-                              title="Usuń z kalendarza"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 </div>

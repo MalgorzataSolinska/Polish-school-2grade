@@ -83,8 +83,8 @@ export const Navbar: React.FC<NavbarProps> = ({
           onClick={() => handleSelectTab('home')}
           className="flex items-center gap-2.5 cursor-pointer group min-w-0"
         >
-          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-[#FFD700] border-3 border-black flex items-center justify-center text-xl sm:text-2xl rotate-[-5deg] shadow-[3px_3px_0px_black] group-hover:rotate-0 transition-all shrink-0">
-            🦉
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-[#FFD700] border-3 border-black flex items-center justify-center p-1 rotate-[-4deg] shadow-[3px_3px_0px_black] group-hover:rotate-0 transition-all shrink-0">
+            <img src="/favicon.svg?v=2" alt="Logo Klasa 2" className="w-full h-full object-contain" />
           </div>
           <div className="min-w-0">
             <h1 className="text-base sm:text-2xl font-black text-black uppercase tracking-tighter italic truncate leading-tight drop-shadow-[1px_1px_0px_#FF4F81]">
