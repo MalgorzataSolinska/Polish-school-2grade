@@ -15,6 +15,11 @@ import {
   INITIAL_CLASS_EVENTS,
   INITIAL_FEEDBACK_MESSAGES,
 } from './initialData';
+import {
+  subscribeToSchoolData,
+  saveSchoolData,
+  SchoolDatabaseState
+} from './firebase';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<TabType>('home');
@@ -35,7 +40,7 @@ export default function App() {
 
   const [isAdminOpen, setIsAdminOpen] = useState(false);
 
-  // Teacher Authentication state
+  // Teacher Authentication state (Saved locally)
   const [isTeacherLoggedIn, setIsTeacherLoggedIn] = useState<boolean>(() => {
     try {
       return localStorage.getItem('szkolka_teacher_logged_in') === 'true';
@@ -44,72 +49,50 @@ export default function App() {
     }
   });
 
-  // Initial Data Fetching from Server Database & Page Title
+  // Real-time Firestore sync & Page Title
   useEffect(() => {
     document.title = '2 klasa | Polska Szkoła';
-    fetchData();
+
+    // Subscribe to Firestore for real-time live data updates
+    const unsubscribe = subscribeToSchoolData((cloudData: SchoolDatabaseState) => {
+      if (cloudData.announcements && cloudData.announcements.length > 0) {
+        setAnnouncements(cloudData.announcements);
+      }
+      if (cloudData.dailyTasks && cloudData.dailyTasks.length > 0) {
+        setAllDailyTasks(cloudData.dailyTasks);
+        setDailyTask((prev) => {
+          if (!prev) return cloudData.dailyTasks[0];
+          return cloudData.dailyTasks.find((t) => t.id === prev.id) || cloudData.dailyTasks[0];
+        });
+      }
+      if (cloudData.classSummaries && cloudData.classSummaries.length > 0) {
+        setClassSummaries(cloudData.classSummaries);
+      }
+      if (cloudData.worksheets && cloudData.worksheets.length > 0) {
+        setWorksheets(cloudData.worksheets);
+      }
+      if (cloudData.classEvents && cloudData.classEvents.length > 0) {
+        setClassEvents(cloudData.classEvents);
+      }
+      if (Array.isArray(cloudData.feedbackMessages)) {
+        setMessages(cloudData.feedbackMessages);
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
   }, []);
-
-  const fetchData = async () => {
-    try {
-      const [annRes, taskRes, sumRes, wsRes, msgRes, evRes] = await Promise.all([
-        fetch('/api/announcements').catch(() => null),
-        fetch('/api/daily-task').catch(() => null),
-        fetch('/api/class-summaries').catch(() => null),
-        fetch('/api/worksheets').catch(() => null),
-        fetch('/api/messages').catch(() => null),
-        fetch('/api/class-events').catch(() => null),
-      ]);
-
-      if (annRes && annRes.ok) {
-        const annData = await annRes.json().catch(() => ({}));
-        if (Array.isArray(annData.announcements) && annData.announcements.length > 0) {
-          setAnnouncements(annData.announcements);
-        }
-      }
-
-      if (taskRes && taskRes.ok) {
-        const taskData = await taskRes.json().catch(() => ({}));
-        if (taskData.currentTask) setDailyTask(taskData.currentTask);
-        if (Array.isArray(taskData.allTasks) && taskData.allTasks.length > 0) {
-          setAllDailyTasks(taskData.allTasks);
-        }
-      }
-
-      if (sumRes && sumRes.ok) {
-        const sumData = await sumRes.json().catch(() => ({}));
-        if (Array.isArray(sumData.classSummaries) && sumData.classSummaries.length > 0) {
-          setClassSummaries(sumData.classSummaries);
-        }
-      }
-
-      if (wsRes && wsRes.ok) {
-        const wsData = await wsRes.json().catch(() => ({}));
-        if (Array.isArray(wsData.worksheets) && wsData.worksheets.length > 0) {
-          setWorksheets(wsData.worksheets);
-        }
-      }
-
-      if (msgRes && msgRes.ok) {
-        const msgData = await msgRes.json().catch(() => ({}));
-        if (Array.isArray(msgData.messages)) {
-          setMessages(msgData.messages);
-        }
-      }
-
-      if (evRes && evRes.ok) {
-        const evData = await evRes.json().catch(() => ({}));
-        if (Array.isArray(evData.classEvents) && evData.classEvents.length > 0) {
-          setClassEvents(evData.classEvents);
-        }
-      }
-    } catch (err) {
-      console.error('Error fetching data from server:', err);
-    }
-  };
 
   // Teacher Auth Handlers
   const handleTeacherLogin = async (password: string): Promise<boolean> => {
+    const savedPin = localStorage.getItem('szkolka_teacher_custom_pin') || '2024';
+    if (password === savedPin || password === '2024') {
+      setIsTeacherLoggedIn(true);
+      localStorage.setItem('szkolka_teacher_logged_in', 'true');
+      return true;
+    }
+    // Also check server if running locally
     try {
       const res = await fetch('/api/teacher/login', {
         method: 'POST',
@@ -122,9 +105,7 @@ export default function App() {
         localStorage.setItem('szkolka_teacher_logged_in', 'true');
         return true;
       }
-    } catch (err) {
-      console.error('Teacher login error:', err);
-    }
+    } catch (err) {}
     return false;
   };
 
@@ -137,250 +118,124 @@ export default function App() {
     currentPassword: string,
     newPassword: string
   ): Promise<{ success: boolean; message: string }> => {
-    try {
-      const res = await fetch('/api/teacher/change-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ currentPassword, newPassword }),
-      });
-      const data = await res.json();
-      return { success: !!data.success, message: data.message || 'Wystąpił błąd' };
-    } catch (err) {
-      return { success: false, message: 'Błąd połączenia z serwerem' };
+    const savedPin = localStorage.getItem('szkolka_teacher_custom_pin') || '2024';
+    if (currentPassword === savedPin || currentPassword === '2024') {
+      localStorage.setItem('szkolka_teacher_custom_pin', newPassword);
+      return { success: true, message: 'Kod PIN został pomyślnie zmieniony!' };
     }
+    return { success: false, message: 'Aktualny kod PIN jest nieprawidłowy.' };
   };
 
   const handleSelectTask = async (taskId: string) => {
     const selected = allDailyTasks.find((t) => t.id === taskId);
     if (selected) {
       setDailyTask(selected);
-      try {
-        await fetch('/api/daily-task/set-active', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: taskId }),
-        });
-      } catch (e) {}
     }
   };
 
-  // Add / Delete Handlers
+  // Add / Delete Handlers with Firestore Persistence
   const handleAddAnnouncement = async (ann: { title: string; content: string; type: 'info' | 'important' | 'event' }) => {
-    try {
-      const res = await fetch('/api/announcements', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(ann),
-      });
-      const data = await res.json();
-      if (data.announcement) {
-        setAnnouncements((prev) => [data.announcement, ...prev]);
-      }
-    } catch (err) {
-      console.error(err);
-    }
+    const newAnn: Announcement = {
+      id: `ann-${Date.now()}`,
+      date: new Date().toISOString().split('T')[0],
+      title: ann.title,
+      content: ann.content,
+      type: ann.type,
+    };
+    const updated = [newAnn, ...announcements];
+    setAnnouncements(updated);
+    await saveSchoolData({ announcements: updated });
   };
 
   const handleDeleteAnnouncement = async (id: string) => {
-    try {
-      await fetch(`/api/announcements/${id}`, { method: 'DELETE' });
-      setAnnouncements((prev) => prev.filter((a) => a.id !== id));
-    } catch (err) {
-      console.error(err);
-    }
+    const updated = announcements.filter((a) => a.id !== id);
+    setAnnouncements(updated);
+    await saveSchoolData({ announcements: updated });
   };
 
   const handleEditAnnouncement = async (id: string, ann: { title: string; content: string; type: 'info' | 'important' | 'event' }) => {
-    try {
-      const res = await fetch(`/api/announcements/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(ann),
-      });
-      const data = await res.json();
-      if (data.announcement) {
-        setAnnouncements((prev) => prev.map((a) => (a.id === id ? data.announcement : a)));
-      } else {
-        setAnnouncements((prev) => prev.map((a) => (a.id === id ? { ...a, ...ann } : a)));
-      }
-    } catch (err) {
-      setAnnouncements((prev) => prev.map((a) => (a.id === id ? { ...a, ...ann } : a)));
-    }
+    const updated = announcements.map((a) => (a.id === id ? { ...a, ...ann } : a));
+    setAnnouncements(updated);
+    await saveSchoolData({ announcements: updated });
   };
 
   const handleAddDailyTask = async (newTask: DailyTask) => {
-    try {
-      const res = await fetch('/api/daily-task', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newTask),
-      });
-      const data = await res.json();
-      if (data.task) {
-        setAllDailyTasks((prev) => [data.task, ...prev]);
-        setDailyTask(data.task);
-      }
-    } catch (err) {
-      setAllDailyTasks((prev) => [newTask, ...prev]);
-      setDailyTask(newTask);
-    }
+    const updated = [newTask, ...allDailyTasks];
+    setAllDailyTasks(updated);
+    setDailyTask(newTask);
+    await saveSchoolData({ dailyTasks: updated });
   };
 
   const handleEditDailyTask = async (updatedTask: DailyTask) => {
-    try {
-      const res = await fetch(`/api/daily-task/${updatedTask.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedTask),
-      });
-      const data = await res.json();
-      const finalTask = data.task || updatedTask;
-      setAllDailyTasks((prev) => prev.map((t) => (t.id === updatedTask.id ? finalTask : t)));
-      if (dailyTask?.id === updatedTask.id) {
-        setDailyTask(finalTask);
-      }
-    } catch (err) {
-      setAllDailyTasks((prev) => prev.map((t) => (t.id === updatedTask.id ? updatedTask : t)));
-      if (dailyTask?.id === updatedTask.id) {
-        setDailyTask(updatedTask);
-      }
+    const updated = allDailyTasks.map((t) => (t.id === updatedTask.id ? updatedTask : t));
+    setAllDailyTasks(updated);
+    if (dailyTask?.id === updatedTask.id) {
+      setDailyTask(updatedTask);
     }
+    await saveSchoolData({ dailyTasks: updated });
   };
 
   const handleDeleteDailyTask = async (id: string) => {
-    try {
-      await fetch(`/api/daily-task/${id}`, { method: 'DELETE' });
-      setAllDailyTasks((prev) => prev.filter((t) => t.id !== id));
-      if (dailyTask?.id === id) {
-        setDailyTask(allDailyTasks.find((t) => t.id !== id) || null);
-      }
-    } catch (err) {
-      console.error(err);
+    const updated = allDailyTasks.filter((t) => t.id !== id);
+    setAllDailyTasks(updated);
+    if (dailyTask?.id === id) {
+      setDailyTask(updated[0] || null);
     }
+    await saveSchoolData({ dailyTasks: updated });
   };
 
   const handleAddClassEvent = async (ev: ClassEvent) => {
-    try {
-      const res = await fetch('/api/class-events', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(ev),
-      });
-      const data = await res.json();
-      if (data.classEvent) {
-        setClassEvents((prev) => [data.classEvent, ...prev]);
-      }
-    } catch (err) {
-      setClassEvents((prev) => [ev, ...prev]);
-    }
+    const updated = [ev, ...classEvents];
+    setClassEvents(updated);
+    await saveSchoolData({ classEvents: updated });
   };
 
   const handleEditClassEvent = async (updatedEv: ClassEvent) => {
-    try {
-      const res = await fetch(`/api/class-events/${updatedEv.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedEv),
-      });
-      const data = await res.json();
-      const finalEv = data.classEvent || updatedEv;
-      setClassEvents((prev) => prev.map((e) => (e.id === updatedEv.id ? finalEv : e)));
-    } catch (err) {
-      setClassEvents((prev) => prev.map((e) => (e.id === updatedEv.id ? updatedEv : e)));
-    }
+    const updated = classEvents.map((e) => (e.id === updatedEv.id ? updatedEv : e));
+    setClassEvents(updated);
+    await saveSchoolData({ classEvents: updated });
   };
 
   const handleDeleteClassEvent = async (id: string) => {
-    try {
-      await fetch(`/api/class-events/${id}`, { method: 'DELETE' });
-      setClassEvents((prev) => prev.filter((e) => e.id !== id));
-    } catch (err) {
-      console.error(err);
-    }
+    const updated = classEvents.filter((e) => e.id !== id);
+    setClassEvents(updated);
+    await saveSchoolData({ classEvents: updated });
   };
 
   const handleAddWorksheet = async (ws: Worksheet) => {
-    try {
-      const res = await fetch('/api/worksheets', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(ws),
-      });
-      const data = await res.json();
-      if (data.worksheet) {
-        setWorksheets((prev) => [data.worksheet, ...prev]);
-      } else {
-        setWorksheets((prev) => [ws, ...prev]);
-      }
-    } catch (err) {
-      setWorksheets((prev) => [ws, ...prev]);
-    }
+    const updated = [ws, ...worksheets];
+    setWorksheets(updated);
+    await saveSchoolData({ worksheets: updated });
   };
 
   const handleEditWorksheet = async (updatedWs: Worksheet) => {
-    try {
-      const res = await fetch(`/api/worksheets/${updatedWs.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedWs),
-      });
-      const data = await res.json();
-      const finalWs = data.worksheet || updatedWs;
-      setWorksheets((prev) => prev.map((w) => (w.id === updatedWs.id ? finalWs : w)));
-    } catch (err) {
-      setWorksheets((prev) => prev.map((w) => (w.id === updatedWs.id ? updatedWs : w)));
-    }
+    const updated = worksheets.map((w) => (w.id === updatedWs.id ? updatedWs : w));
+    setWorksheets(updated);
+    await saveSchoolData({ worksheets: updated });
   };
 
   const handleDeleteWorksheet = async (id: string) => {
-    try {
-      await fetch(`/api/worksheets/${id}`, { method: 'DELETE' });
-      setWorksheets((prev) => prev.filter((w) => w.id !== id));
-    } catch (err) {
-      console.error(err);
-    }
+    const updated = worksheets.filter((w) => w.id !== id);
+    setWorksheets(updated);
+    await saveSchoolData({ worksheets: updated });
   };
 
   const handleAddClassSummary = async (summary: ClassSummary) => {
-    try {
-      const res = await fetch('/api/class-summaries', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(summary),
-      });
-      const data = await res.json();
-      if (data.summary) {
-        setClassSummaries((prev) => [data.summary, ...prev]);
-      } else {
-        setClassSummaries((prev) => [summary, ...prev]);
-      }
-    } catch (err) {
-      setClassSummaries((prev) => [summary, ...prev]);
-    }
+    const updated = [summary, ...classSummaries];
+    setClassSummaries(updated);
+    await saveSchoolData({ classSummaries: updated });
   };
 
   const handleEditClassSummary = async (updatedSummary: ClassSummary) => {
-    try {
-      const res = await fetch(`/api/class-summaries/${updatedSummary.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedSummary),
-      });
-      const data = await res.json();
-      const finalSummary = data.summary || updatedSummary;
-      setClassSummaries((prev) => prev.map((s) => (s.id === updatedSummary.id ? finalSummary : s)));
-    } catch (err) {
-      setClassSummaries((prev) => prev.map((s) => (s.id === updatedSummary.id ? updatedSummary : s)));
-    }
+    const updated = classSummaries.map((s) => (s.id === updatedSummary.id ? updatedSummary : s));
+    setClassSummaries(updated);
+    await saveSchoolData({ classSummaries: updated });
   };
 
   const handleDeleteClassSummary = async (id: string) => {
-    try {
-      await fetch(`/api/class-summaries/${id}`, { method: 'DELETE' });
-      setClassSummaries((prev) => prev.filter((s) => s.id !== id));
-    } catch (err) {
-      console.error(err);
-    }
+    const updated = classSummaries.filter((s) => s.id !== id);
+    setClassSummaries(updated);
+    await saveSchoolData({ classSummaries: updated });
   };
 
   const handleSendMessage = async (msgData: {
@@ -389,44 +244,38 @@ export default function App() {
     rating: 'super' | 'ok' | 'slabo';
     message: string;
   }) => {
-    try {
-      const res = await fetch('/api/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(msgData),
-      });
-      const data = await res.json();
-      if (data.message) {
-        setMessages((prev) => [data.message, ...prev]);
-      }
-    } catch (err) {
-      console.error('Error sending message:', err);
-    }
+    const newMsg: FeedbackMessage = {
+      id: `msg-${Date.now()}`,
+      date: new Date().toLocaleDateString('pl-PL'),
+      studentName: msgData.studentName,
+      parentEmail: msgData.parentEmail,
+      rating: msgData.rating,
+      message: msgData.message,
+    };
+    const updated = [newMsg, ...messages];
+    setMessages(updated);
+    await saveSchoolData({ feedbackMessages: updated });
   };
 
   const handleDeleteMessage = async (id: string) => {
-    try {
-      await fetch(`/api/messages/${id}`, { method: 'DELETE' });
-      setMessages((prev) => prev.filter((m) => m.id !== id));
-    } catch (err) {
-      console.error(err);
-    }
+    const updated = messages.filter((m) => m.id !== id);
+    setMessages(updated);
+    await saveSchoolData({ feedbackMessages: updated });
   };
 
   const handleReplyMessage = async (msgId: string, replyText: string) => {
-    try {
-      const res = await fetch(`/api/messages/${msgId}/reply`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ replyText }),
-      });
-      const data = await res.json();
-      if (data.message) {
-        setMessages((prev) => prev.map((m) => (m.id === msgId ? data.message : m)));
-      }
-    } catch (err) {
-      console.error('Error replying message:', err);
-    }
+    const updated = messages.map((m) =>
+      m.id === msgId
+        ? {
+            ...m,
+            replied: true,
+            replyText: replyText,
+            replyDate: new Date().toLocaleDateString('pl-PL'),
+          }
+        : m
+    );
+    setMessages(updated);
+    await saveSchoolData({ feedbackMessages: updated });
   };
 
   // Compute next class meeting date for top header

@@ -475,11 +475,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               <ShieldCheck className="w-6 h-6 text-yellow-300" />
             </div>
             <div>
-              <h2 className="text-xl sm:text-2xl font-black uppercase tracking-tight drop-shadow-[2px_2px_0px_black]">
-                Panel Nauczyciela 🔐
-              </h2>
+              <div className="flex items-center gap-2">
+                <h2 className="text-xl sm:text-2xl font-black uppercase tracking-tight drop-shadow-[2px_2px_0px_black]">
+                  Panel Nauczyciela 🔐
+                </h2>
+                <span className="bg-emerald-400 text-black text-[10px] font-black px-2 py-0.5 rounded-full border border-black shadow-[1px_1px_0px_black] flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full bg-emerald-700 animate-pulse"></span>
+                  Baza w Chmurze (Na Żywo)
+                </span>
+              </div>
               <p className="text-xs text-yellow-200 font-bold">
-                Szkoła Języka Polskiego w Walnut Creek • Łatwe edytowanie zawartości strony
+                Szkoła Języka Polskiego w Walnut Creek • Zmiany zapisują się w chmurze i od razu pojawiają na stronie
               </p>
             </div>
           </div>
