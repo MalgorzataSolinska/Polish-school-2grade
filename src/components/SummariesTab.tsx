@@ -229,10 +229,6 @@ export const SummariesTab: React.FC<SummariesTabProps> = ({ summaries, targetDat
                   </div>
                 </div>
 
-                <div className="mt-5 pt-3 border-t-2 border-black text-center">
-                  <span className="text-[11px] font-black text-black uppercase">
-                  </span>
-                </div>
               </div>
             </div>
           </div>
