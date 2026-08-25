@@ -1,0 +1,8 @@
+{
+  "name": "Polska Szkoła - Klasa 2",
+  "description": "Kolorowa platforma edukacyjna dla uczniów 2 klasy polskiej szkoły sobotniej, rodziców i nauczycieli. Gry, zadania, kalendarz zjazdów i podsumowania zajęć.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
