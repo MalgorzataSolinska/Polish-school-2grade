@@ -52,7 +52,7 @@ export const SpellingGame: React.FC<SpellingGameProps> = ({ items, onComplete, o
     playClickSound();
     setShowError(false);
     // Remove from built
-    setBuiltLetters((prev) => [...prev, letterObj]);
+    setBuiltLetters((prev) => prev.filter((l) => l.id !== letterObj.id));
     // Put back to available
     setAvailableLetters((prev) => [...prev, letterObj]);
   };
