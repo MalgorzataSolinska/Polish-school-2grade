@@ -3,6 +3,7 @@ import { WordSearchData, LanguageMode } from '../../types';
 import { playSuccessSound, playClickSound } from '../../utils/audio';
 import confetti from 'canvas-confetti';
 import { CheckCircle2, RotateCcw } from 'lucide-react';
+import { cleanWord } from '../../utils/wordHelpers';
 
 interface WordSearchGameProps {
   data: WordSearchData;
@@ -34,11 +35,11 @@ export const WordSearchGame: React.FC<WordSearchGameProps> = ({
 
   const generateGrid = () => {
     const wordsToPlace = [...data.words].sort(
-      (a, b) => b.pl.replace(/\s+/g, '').length - a.pl.replace(/\s+/g, '').length
+      (a, b) => cleanWord(b.pl).length - cleanWord(a.pl).length
     );
     const numWords = wordsToPlace.length;
     const maxWordLen = Math.max(
-      ...wordsToPlace.map((w) => w.pl.replace(/\s+/g, '').length)
+      ...wordsToPlace.map((w) => cleanWord(w.pl).length)
     );
     // Dynamic grid size: ensure enough space for all words
     const size = Math.max(data.gridSize || 8, maxWordLen, Math.min(10, Math.ceil(Math.sqrt(numWords * 9))));
@@ -65,7 +66,7 @@ export const WordSearchGame: React.FC<WordSearchGameProps> = ({
       allPlaced = true;
 
       for (const item of wordsToPlace) {
-        const word = item.pl.toUpperCase().replace(/\s+/g, '');
+        const word = cleanWord(item.pl);
         let placed = false;
         let wordAttempts = 0;
 
@@ -204,13 +205,13 @@ export const WordSearchGame: React.FC<WordSearchGameProps> = ({
     const backwardStr = forwardStr.split('').reverse().join('');
 
     const matchedWordObj = data.words.find((w) => {
-      const target = w.pl.toUpperCase().replace(/\s+/g, '');
-      const isNotAlreadyFound = !foundWords.includes(w.pl.toUpperCase());
+      const target = cleanWord(w.pl);
+      const isNotAlreadyFound = !foundWords.includes(target);
       return isNotAlreadyFound && (target === forwardStr || target === backwardStr);
     });
 
     if (matchedWordObj) {
-      const matchedWordStr = matchedWordObj.pl.toUpperCase();
+      const matchedWordStr = cleanWord(matchedWordObj.pl);
       const updatedFound = [...foundWords, matchedWordStr];
       setFoundWords(updatedFound);
 

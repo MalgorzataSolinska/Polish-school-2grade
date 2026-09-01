@@ -35,6 +35,7 @@ export default function App() {
   const cached = getInitialCachedState();
   const [activeTab, setActiveTab] = useState<TabType>('home');
   const [targetSummaryDate, setTargetSummaryDate] = useState<string | undefined>(undefined);
+  const [targetGameDate, setTargetGameDate] = useState<string | undefined>(undefined);
   const [isCloudSyncDone, setIsCloudSyncDone] = useState<boolean>(
     Boolean(cached.announcements || cached.classEvents)
   );
@@ -46,6 +47,11 @@ export default function App() {
   const handleNavigateToSummary = (dateStr: string) => {
     setTargetSummaryDate(dateStr);
     setActiveTab('summaries');
+  };
+
+  const handleNavigateToGames = (dateStr: string) => {
+    setTargetGameDate(dateStr);
+    setActiveTab('games');
   };
 
   const [announcements, setAnnouncements] = useState<Announcement[]>(
@@ -68,6 +74,16 @@ export default function App() {
   );
 
   const [isAdminOpen, setIsAdminOpen] = useState(false);
+  const [adminInitialTab, setAdminInitialTab] = useState<'announcements' | 'games' | 'calendar' | 'summaries' | 'messages'>('announcements');
+  const [adminInitialGameSaturday, setAdminInitialGameSaturday] = useState<string | undefined>(undefined);
+  const [adminInitialGameTaskId, setAdminInitialGameTaskId] = useState<string | undefined>(undefined);
+
+  const handleOpenAdminForGameEdit = (saturdayDate?: string, taskId?: string) => {
+    setAdminInitialTab('games');
+    setAdminInitialGameSaturday(saturdayDate);
+    setAdminInitialGameTaskId(taskId);
+    setIsAdminOpen(true);
+  };
 
   // Teacher Authentication state (Saved locally)
   const [isTeacherLoggedIn, setIsTeacherLoggedIn] = useState<boolean>(() => {
@@ -344,7 +360,10 @@ export default function App() {
           <GamesTab
             dailyTask={dailyTask || allDailyTasks[0] || INITIAL_DAILY_TASKS[0]}
             allDailyTasks={allDailyTasks.length > 0 ? allDailyTasks : INITIAL_DAILY_TASKS}
+            classEvents={classEvents}
+            targetDate={targetGameDate}
             onSelectTask={handleSelectTask}
+            onOpenAdminForGameEdit={handleOpenAdminForGameEdit}
           />
         )}
 
@@ -352,7 +371,9 @@ export default function App() {
           <CalendarTab
             classEvents={classEvents}
             summaries={classSummaries}
+            allDailyTasks={allDailyTasks}
             onNavigateToSummary={handleNavigateToSummary}
+            onNavigateToGames={handleNavigateToGames}
           />
         )}
 
@@ -394,7 +415,13 @@ export default function App() {
       {/* Admin Panel Modal */}
       <AdminPanel
         isOpen={isAdminOpen}
-        onClose={() => setIsAdminOpen(false)}
+        onClose={() => {
+          setIsAdminOpen(false);
+          setAdminInitialGameTaskId(undefined);
+        }}
+        initialAdminTab={adminInitialTab}
+        initialGameSaturday={adminInitialGameSaturday}
+        initialGameTaskId={adminInitialGameTaskId}
         announcements={announcements}
         onAddAnnouncement={handleAddAnnouncement}
         onEditAnnouncement={handleEditAnnouncement}

@@ -1,12 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Announcement, DailyTask, ClassSummary, Worksheet, FeedbackMessage, ClassEvent, GameType, SpellingItem, MatchingItem, StoryQuestion, GeographyQuizQuestion } from '../types';
 import { playSuccessSound } from '../utils/audio';
-import { Lock, Megaphone, Calendar, FileText, Mail, Plus, ShieldCheck, X, Upload, KeyRound, Trash2, BookOpen, Gamepad2, Sparkles, CheckCircle2, Pencil, Edit } from 'lucide-react';
-import { getEmojiForWord } from '../utils/wordHelpers';
+import { Lock, Megaphone, Calendar, FileText, Mail, Plus, ShieldCheck, X, Upload, KeyRound, Trash2, BookOpen, Gamepad2, Sparkles, CheckCircle2, Pencil, Edit, Layers, Check, RefreshCw } from 'lucide-react';
+import { getEmojiForWord, cleanWord, parseWordList } from '../utils/wordHelpers';
+import { RichTextEditor } from './RichTextEditor';
+import { FormattedText } from './FormattedText';
 
 interface AdminPanelProps {
   isOpen: boolean;
   onClose: () => void;
+  initialAdminTab?: 'announcements' | 'games' | 'calendar' | 'worksheets' | 'summaries' | 'messages' | 'password';
+  initialGameSaturday?: string;
+  initialGameTaskId?: string;
   // Announcements
   announcements: Announcement[];
   onAddAnnouncement: (ann: { title: string; content: string; type: 'info' | 'important' | 'event' }) => void;
@@ -46,6 +51,9 @@ interface AdminPanelProps {
 export const AdminPanel: React.FC<AdminPanelProps> = ({
   isOpen,
   onClose,
+  initialAdminTab = 'announcements',
+  initialGameSaturday,
+  initialGameTaskId,
   announcements,
   onAddAnnouncement,
   onEditAnnouncement,
@@ -76,7 +84,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 }) => {
   const [pinInput, setPinInput] = useState('');
   const [loginError, setLoginError] = useState('');
-  const [activeAdminTab, setActiveAdminTab] = useState<'announcements' | 'games' | 'calendar' | 'worksheets' | 'summaries' | 'messages' | 'password'>('announcements');
+  const [activeAdminTab, setActiveAdminTab] = useState<'announcements' | 'games' | 'calendar' | 'worksheets' | 'summaries' | 'messages' | 'password'>(initialAdminTab);
+
+  // Filter & Batch State for Games
+  const [gamesFilterSaturday, setGamesFilterSaturday] = useState<string>('all');
+  const [batchEditSaturday, setBatchEditSaturday] = useState<string | null>(null);
+  const [batchWordsInput, setBatchWordsInput] = useState<string>('');
+  const [gameNotification, setGameNotification] = useState<string | null>(null);
 
   // Announcement Form State
   const [annTitle, setAnnTitle] = useState('');
@@ -87,7 +101,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [taskTitle, setTaskTitle] = useState('');
   const [taskType, setTaskType] = useState<GameType>('spelling');
   const [taskDescription, setTaskDescription] = useState('Dotknij liter, aby ułożyć słowa z lekcji!');
-  const [taskWordsInput, setTaskWordsInput] = useState('SYRENKA, WARSZAWA, WISŁA, KRAKÓW, FLAGA');
+  const [taskWordsInput, setTaskWordsInput] = useState('WAKACJE, SŁOŃCE, MORZE, GÓRY, ALFABET, SZKOŁA');
+  const [taskSaturdayDate, setTaskSaturdayDate] = useState('Sobota, 29 Sierpnia 2026');
+  const [taskTopic, setTaskTopic] = useState('');
 
   // Calendar Event Form State
   const [evDateStr, setEvDateStr] = useState('Sobota, 22 Sierpnia 2026');
@@ -128,8 +144,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [newPassInput, setNewPassInput] = useState('');
   const [passStatus, setPassStatus] = useState<{ msg: string; error: boolean } | null>(null);
 
-  if (!isOpen) return null;
-
   // Edit helper triggers
   const startEditingAnn = (ann: Announcement) => {
     setEditingAnnId(ann.id);
@@ -150,24 +164,53 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     setTaskTitle(task.title);
     setTaskType(task.type);
     setTaskDescription(task.description);
+    setTaskSaturdayDate(task.eventDateStr || task.date || 'Sobota, 29 Sierpnia 2026');
+    setTaskTopic(task.topic || '');
 
     let words = '';
     if (task.spelling && task.spelling.length > 0) {
-      words = task.spelling.map((s) => s.word).join(', ');
+      words = task.spelling.map((s) => cleanWord(s.word)).join(', ');
     } else if (task.wordSearch?.words) {
-      words = task.wordSearch.words.map((w) => w.pl).join(', ');
+      words = task.wordSearch.words.map((w) => cleanWord(w.pl)).join(', ');
     } else if (task.matching && task.matching.length > 0) {
-      words = task.matching.map((m) => m.wordPl).join(', ');
+      words = task.matching.map((m) => cleanWord(m.wordPl)).join(', ');
     }
     setTaskWordsInput(words);
+
+    // Scroll form into view
+    setTimeout(() => {
+      document.getElementById('admin-game-form')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 100);
   };
 
   const cancelEditGame = () => {
     setEditingTaskId(null);
     setTaskTitle('');
     setTaskDescription('Dotknij liter, aby ułożyć słowa z lekcji!');
-    setTaskWordsInput('SYRENKA, WARSZAWA, WISŁA, KRAKÓW, FLAGA');
+    setTaskWordsInput('WAKACJE, SŁOŃCE, MORZE, GÓRY, ALFABET, SZKOŁA');
+    setTaskSaturdayDate('Sobota, 29 Sierpnia 2026');
+    setTaskTopic('');
   };
+
+  // Sync initial tab, Saturday filter, and task to edit when modal opens or props change
+  useEffect(() => {
+    if (!isOpen) return;
+    if (initialAdminTab) {
+      setActiveAdminTab(initialAdminTab);
+    }
+    if (initialGameSaturday) {
+      setGamesFilterSaturday(initialGameSaturday);
+      setTaskSaturdayDate(initialGameSaturday);
+      const ev = classEvents.find((e) => e.dateStr === initialGameSaturday || e.isoDate === initialGameSaturday);
+      if (ev?.topic) setTaskTopic(ev.topic);
+    }
+    if (initialGameTaskId) {
+      const task = allDailyTasks.find((t) => t.id === initialGameTaskId);
+      if (task) {
+        startEditingGame(task);
+      }
+    }
+  }, [initialAdminTab, initialGameSaturday, initialGameTaskId, isOpen]);
 
   const startEditingEvent = (ev: ClassEvent) => {
     setEditingEventId(ev.id);
@@ -297,15 +340,23 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     e.preventDefault();
     if (!taskTitle) return;
 
-    const rawWords = taskWordsInput
-      .split(',')
-      .map((w) => w.trim())
-      .filter((w) => w.length > 0);
+    const rawWords = parseWordList(taskWordsInput);
+
+    const matchedEv = classEvents.find(
+      (ev) =>
+        ev.dateStr.toLowerCase().trim() === taskSaturdayDate.toLowerCase().trim() ||
+        ev.isoDate === taskSaturdayDate
+    );
+    const dateStr = matchedEv ? matchedEv.dateStr : taskSaturdayDate;
+    const isoDate = matchedEv ? matchedEv.isoDate : undefined;
 
     const taskId = editingTaskId || `task-${Date.now()}`;
     const newTask: DailyTask = {
       id: taskId,
-      date: 'Zadanie Pani Małgosi',
+      date: dateStr,
+      eventDateStr: dateStr,
+      eventIsoDate: isoDate,
+      topic: taskTopic || matchedEv?.topic || undefined,
       title: taskTitle,
       titleEn: taskTitle,
       description: taskDescription,
@@ -317,25 +368,66 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     if (taskType === 'spelling' || taskType === 'secret_word' || taskType === 'syllables') {
       const spellingItems: SpellingItem[] = rawWords.map((w, idx) => ({
         id: `sp-${idx}-${Date.now()}`,
-        word: w.toUpperCase(),
+        word: cleanWord(w),
         hint: `Ułóż polskie słowo z kafelków!`,
         emoji: getEmojiForWord(w),
       }));
       newTask.spelling = spellingItems;
     } else if (taskType === 'wordsearch') {
       newTask.wordSearch = {
-        words: rawWords.map((w) => ({ pl: w.toUpperCase(), en: w })),
+        words: rawWords.map((w) => ({ pl: cleanWord(w), en: cleanWord(w) })),
         gridSize: 8,
       };
     }
 
     if (editingTaskId && onEditDailyTask) {
       onEditDailyTask(newTask);
+      setGameNotification(`✅ Zapisano zmiany w grze "${newTask.title}" (${newTask.eventDateStr || newTask.date})!`);
       setEditingTaskId(null);
     } else {
       onAddDailyTask(newTask);
+      setGameNotification(`🎉 Utworzono i opublikowano grę "${newTask.title}" dla zjazdu: ${newTask.eventDateStr || newTask.date}!`);
     }
     setTaskTitle('');
+    playSuccessSound();
+  };
+
+  const handleBatchUpdateWordsForSaturday = (saturdayDate: string, newWordsString: string) => {
+    const rawWords = parseWordList(newWordsString);
+
+    if (rawWords.length === 0) return;
+
+    const tasksForSat = allDailyTasks.filter((t) => {
+      const d1 = (t.eventDateStr || t.date || '').toLowerCase().trim();
+      const d2 = saturdayDate.toLowerCase().trim();
+      return d1 === d2 || d1.includes(d2) || d2.includes(d1);
+    });
+
+    if (tasksForSat.length === 0) return;
+
+    tasksForSat.forEach((task) => {
+      const updatedTask: DailyTask = { ...task };
+      if (task.type === 'spelling' || task.type === 'secret_word' || task.type === 'syllables') {
+        updatedTask.spelling = rawWords.map((w, idx) => ({
+          id: `sp-${idx}-${Date.now()}`,
+          word: cleanWord(w),
+          hint: `Ułóż polskie słowo z kafelków!`,
+          emoji: getEmojiForWord(w),
+        }));
+      } else if (task.type === 'wordsearch') {
+        updatedTask.wordSearch = {
+          words: rawWords.map((w) => ({ pl: cleanWord(w), en: cleanWord(w) })),
+          gridSize: 8,
+        };
+      }
+      if (onEditDailyTask) {
+        onEditDailyTask(updatedTask);
+      }
+    });
+
+    setBatchEditSaturday(null);
+    setBatchWordsInput('');
+    setGameNotification(`✅ Pomyślnie zaktualizowano listę słówek dla wszystkich (${tasksForSat.length}) gier ze zjazdu: ${saturdayDate}!`);
     playSuccessSound();
   };
 
@@ -504,6 +596,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       setPassStatus({ msg: res.message, error: true });
     }
   };
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
@@ -685,17 +779,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                         />
                       </div>
 
-                      <div>
-                        <label className="block text-[11px] font-black uppercase text-black mb-1">Treść ogłoszenia:</label>
-                        <textarea
-                          value={annContent}
-                          onChange={(e) => setAnnContent(e.target.value)}
-                          required
-                          rows={3}
-                          placeholder="Wpisz treść ogłoszenia..."
-                          className="w-full px-3 py-2 rounded-xl border-2 border-black text-xs font-bold bg-yellow-50"
-                        />
-                      </div>
+                      <RichTextEditor
+                        label="Treść ogłoszenia (akpity, wyróżnienia, kolory):"
+                        value={annContent}
+                        onChange={setAnnContent}
+                        required
+                        rows={4}
+                        placeholder="Wpisz treść ogłoszenia... (Enter dodaje nowy akapit, możesz używać pogrubienia, kolorów i wyrównania)"
+                        helpText="Naciśnij Enter, aby przejść do kolejnej linii. Użyj panelu bocznego, aby wyróżnić tekst."
+                      />
 
                       <div className="flex items-center gap-2">
                         <button
@@ -726,12 +818,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                     </h3>
                     <div className="space-y-2">
                       {announcements.map((ann) => (
-                        <div key={ann.id} className="p-3 bg-yellow-50 rounded-xl border-2 border-black flex items-center justify-between gap-2 text-xs">
-                          <div>
-                            <span className="font-black text-black block">{ann.title}</span>
-                            <p className="text-[11px] text-gray-700 font-bold">{ann.content}</p>
+                        <div key={ann.id} className="p-3 bg-yellow-50 rounded-xl border-2 border-black flex items-start justify-between gap-2 text-xs">
+                          <div className="min-w-0 flex-1">
+                            <span className="font-black text-black block mb-1">{ann.title}</span>
+                            <div className="text-[11px] text-gray-800 font-bold leading-relaxed whitespace-pre-wrap">
+                              <FormattedText text={ann.content} />
+                            </div>
                           </div>
-                          <div className="flex items-center gap-1.5 shrink-0">
+                          <div className="flex items-center gap-1.5 shrink-0 ml-2">
                             <button
                               onClick={() => startEditingAnn(ann)}
                               className="p-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg border border-black cursor-pointer transition"
@@ -757,16 +851,146 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               {/* TAB 2: GRY & ZADANIA */}
               {activeAdminTab === 'games' && (
                 <div className="space-y-6">
-                  <div className="bg-white p-5 rounded-2xl border-3 border-black shadow-[4px_4px_0px_black]">
-                    <h3 className="text-sm font-black text-black uppercase mb-1 flex items-center gap-2">
-                      {editingTaskId ? <Pencil className="w-4 h-4 text-amber-500" /> : <Plus className="w-4 h-4 text-[#FF4F81]" />}
-                      <span>{editingTaskId ? 'Edytujesz Grę:' : 'Dodaj Nową Grę dla Uczniów:'}</span>
-                    </h3>
-                    <p className="text-xs font-bold text-gray-800 mb-3">
-                      Możesz stworzyć literowanie słów, wykreślankę, dopasowywanie do obrazków, quiz lub czytankę.
-                    </p>
+                  {/* Game Notification Banner */}
+                  {gameNotification && (
+                    <div className="p-4 bg-emerald-500 text-white rounded-2xl border-3 border-black shadow-[4px_4px_0px_black] font-black text-xs flex items-center justify-between animate-bounce">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="w-5 h-5 shrink-0" />
+                        <span>{gameNotification}</span>
+                      </div>
+                      <button
+                        onClick={() => setGameNotification(null)}
+                        className="text-white hover:text-black ml-2 text-sm font-black cursor-pointer"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Saturday Filter Tabs */}
+                  <div className="bg-[#FFF9E6] p-4 rounded-2xl border-3 border-black shadow-[4px_4px_0px_black]">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+                      <div>
+                        <span className="text-[11px] font-black uppercase text-black flex items-center gap-1.5">
+                          <Layers className="w-4 h-4 text-[#FF4F81]" />
+                          <span>Filtruj gry według zjazdu sobotniego:</span>
+                        </span>
+                        <p className="text-[10px] text-gray-700 font-bold">
+                          Wybierz konkretną sobotę, aby szybko edytować lub uzupełnić jej gry i słówka.
+                        </p>
+                      </div>
+                      {editingTaskId && (
+                        <div className="inline-flex items-center gap-1 bg-amber-200 border-2 border-black px-2.5 py-1 rounded-xl text-[10px] font-black animate-pulse">
+                          <Pencil className="w-3.5 h-3.5 text-amber-700" />
+                          <span>Tryb edycji gry aktywny</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex flex-wrap gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setGamesFilterSaturday('all')}
+                        className={`px-3 py-1.5 rounded-xl border-2 border-black text-xs font-black transition cursor-pointer ${
+                          gamesFilterSaturday === 'all'
+                            ? 'bg-black text-white shadow-[2px_2px_0px_rgba(0,0,0,0.3)]'
+                            : 'bg-white text-black hover:bg-yellow-200'
+                        }`}
+                      >
+                        Wszystkie zjazdy ({allDailyTasks.length})
+                      </button>
+                      {classEvents.map((ev) => {
+                        const count = allDailyTasks.filter((t) => {
+                          const td = (t.eventDateStr || t.date || '').toLowerCase().trim();
+                          const ed = ev.dateStr.toLowerCase().trim();
+                          return td === ed || (t.eventIsoDate && t.eventIsoDate === ev.isoDate);
+                        }).length;
+
+                        return (
+                          <button
+                            key={ev.id}
+                            type="button"
+                            onClick={() => {
+                              setGamesFilterSaturday(ev.dateStr);
+                              setTaskSaturdayDate(ev.dateStr);
+                              if (ev.topic) setTaskTopic(ev.topic);
+                            }}
+                            className={`px-3 py-1.5 rounded-xl border-2 border-black text-xs font-black transition cursor-pointer flex items-center gap-1.5 ${
+                              gamesFilterSaturday === ev.dateStr
+                                ? 'bg-[#FF4F81] text-white shadow-[2px_2px_0px_black]'
+                                : 'bg-white text-black hover:bg-yellow-200'
+                            }`}
+                          >
+                            <span>{ev.dateStr.split(',')[1]?.trim() || ev.dateStr}</span>
+                            <span className={`text-[10px] px-1.5 py-0.2 rounded font-black ${
+                              gamesFilterSaturday === ev.dateStr ? 'bg-white text-black' : count > 0 ? 'bg-amber-300 text-black' : 'bg-gray-200 text-gray-700'
+                            }`}>
+                              {count} {count === 1 ? 'gra' : count > 1 && count < 5 ? 'gry' : 'gier'}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Form for Creating / Editing a Game */}
+                  <div id="admin-game-form" className={`p-5 rounded-2xl border-3 border-black shadow-[4px_4px_0px_black] transition-all ${
+                    editingTaskId ? 'bg-amber-50 ring-4 ring-amber-400' : 'bg-white'
+                  }`}>
+                    <div className="flex items-center justify-between gap-2 mb-3">
+                      <div>
+                        <h3 className="text-sm font-black text-black uppercase flex items-center gap-2">
+                          {editingTaskId ? <Pencil className="w-4 h-4 text-amber-600" /> : <Plus className="w-4 h-4 text-[#FF4F81]" />}
+                          <span>{editingTaskId ? 'Edytujesz Grę:' : 'Dodaj Nową Grę dla Uczniów:'}</span>
+                        </h3>
+                        <p className="text-xs font-bold text-gray-800">
+                          {editingTaskId
+                            ? 'Zmień tytuł, przypisany zjazd, typ zadania lub listę słówek poniżej i kliknij Zapisz Zmiany.'
+                            : 'Wybierz zjazd, podaj słówka oddzielone przecinkami, a system sam wygeneruje interaktywne zadanie.'}
+                        </p>
+                      </div>
+
+                      {editingTaskId && (
+                        <button
+                          type="button"
+                          onClick={cancelEditGame}
+                          className="bg-gray-200 hover:bg-gray-300 text-black border-2 border-black font-black px-3 py-1.5 rounded-xl text-xs uppercase cursor-pointer"
+                        >
+                          ✕ Anuluj edycję
+                        </button>
+                      )}
+                    </div>
 
                     <form onSubmit={handleAddGameSubmit} className="space-y-3">
+                      {/* Saturday / Class Event Selector */}
+                      <div className="p-3 bg-yellow-100/80 rounded-xl border-2 border-black">
+                        <label className="block text-[11px] font-black uppercase text-black mb-1 flex items-center justify-between">
+                          <span className="flex items-center gap-1">
+                            <Calendar className="w-3.5 h-3.5 text-[#FF4F81]" />
+                            <span>Przypisz grę do zjazdu sobotniego:</span>
+                          </span>
+                          <span className="text-[10px] text-gray-600 font-bold">Wybór zjazdu</span>
+                        </label>
+                        <select
+                          value={taskSaturdayDate}
+                          onChange={(e) => {
+                            setTaskSaturdayDate(e.target.value);
+                            const ev = classEvents.find((ev) => ev.dateStr === e.target.value || ev.isoDate === e.target.value);
+                            if (ev && ev.topic) setTaskTopic(ev.topic);
+                          }}
+                          className="w-full px-3 py-2 rounded-xl border-2 border-black text-xs font-black bg-white"
+                        >
+                          {classEvents.map((ev) => (
+                            <option key={ev.id} value={ev.dateStr}>
+                              {ev.dateStr} — {ev.topic || (ev.isHoliday ? 'Wolne' : 'Zajęcia')}
+                            </option>
+                          ))}
+                        </select>
+                        <p className="text-[10px] text-gray-800 font-bold mt-1">
+                          Gra pojawi się w sekcji wybranej soboty i będzie bezpośrednio powiązana z kalendarzem.
+                        </p>
+                      </div>
+
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
                           <label className="block text-[11px] font-black uppercase text-black mb-1">Tytuł gry / zadania:</label>
@@ -775,7 +999,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                             value={taskTitle}
                             onChange={(e) => setTaskTitle(e.target.value)}
                             required
-                            placeholder="np. Literowanie Słów z Lekcji 2"
+                            placeholder="np. 🔤 Słówka Wakacyjne"
                             className="w-full px-3 py-2 rounded-xl border-2 border-black text-xs font-bold bg-yellow-50"
                           />
                         </div>
@@ -802,7 +1026,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                           value={taskDescription}
                           onChange={(e) => setTaskDescription(e.target.value)}
                           required
-                          placeholder="np. Dotknij liter i ułóż słowo Syrenka!"
+                          placeholder="np. Dotknij liter i ułóż słowo z 29 sierpnia!"
                           className="w-full px-3 py-2 rounded-xl border-2 border-black text-xs font-bold bg-yellow-50"
                         />
                       </div>
@@ -816,67 +1040,249 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                           value={taskWordsInput}
                           onChange={(e) => setTaskWordsInput(e.target.value)}
                           required
-                          placeholder="SYRENKA, WARSZAWA, WISŁA, KRAKÓW, FLAGA"
+                          placeholder="WAKACJE, SŁOŃCE, MORZE, GÓRY, ALFABET, SZKOŁA"
                           className="w-full px-3 py-2 rounded-xl border-2 border-black text-xs font-mono font-bold bg-yellow-50"
                         />
                         <p className="text-[10px] text-gray-800 font-bold mt-1">
-                          Słowa zostaną automatycznie zamienione w duży, czytelny zestaw zadań z przyciskami na telefon.
+                          Wpisz słowa oddzielone przecinkami (np. <i>WAKACJE, SŁOŃCE, MORZE, GÓRY</i>).
                         </p>
                       </div>
 
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 pt-1">
                         <button
                           type="submit"
-                          className={`text-white border-2 border-black font-black px-4 py-2 rounded-xl text-xs uppercase cursor-pointer shadow-[2px_2px_0px_black] ${
+                          className={`text-white border-2 border-black font-black px-5 py-2.5 rounded-xl text-xs uppercase cursor-pointer shadow-[3px_3px_0px_black] active:scale-95 transition ${
                             editingTaskId ? 'bg-amber-500 hover:bg-amber-600' : 'bg-emerald-500 hover:bg-emerald-600'
                           }`}
                         >
-                          {editingTaskId ? '💾 Zapisz Zmiany Gry ✏️' : '+ Stwórz i Opublikuj Grę ✨'}
+                          {editingTaskId ? '💾 Zapisz Zmiany w Grze ✏️' : '+ Stwórz i Opublikuj Grę ✨'}
                         </button>
                         {editingTaskId && (
                           <button
                             type="button"
                             onClick={cancelEditGame}
-                            className="bg-gray-200 hover:bg-gray-300 text-black border-2 border-black font-bold px-3 py-2 rounded-xl text-xs uppercase cursor-pointer"
+                            className="bg-gray-200 hover:bg-gray-300 text-black border-2 border-black font-bold px-4 py-2.5 rounded-xl text-xs uppercase cursor-pointer"
                           >
-                            Anuluj Edycję
+                            Anuluj
                           </button>
                         )}
                       </div>
                     </form>
                   </div>
 
-                  {/* List of existing games with delete & edit */}
-                  <div className="bg-white p-5 rounded-2xl border-3 border-black shadow-[4px_4px_0px_black]">
-                    <h3 className="text-xs font-black uppercase tracking-wider text-black mb-3">
-                      Lista Dostępnych Gier na Stronie ({allDailyTasks.length}):
-                    </h3>
-                    <div className="space-y-2">
-                      {allDailyTasks.map((task) => (
-                        <div key={task.id} className="p-3 bg-yellow-50 rounded-xl border-2 border-black flex items-center justify-between gap-2 text-xs">
-                          <div>
-                            <span className="font-black text-black block">{task.title}</span>
-                            <span className="text-[10px] text-gray-800 font-bold uppercase">Typ: {task.type}</span>
-                          </div>
-                          <div className="flex items-center gap-1.5 shrink-0">
-                            <button
-                              onClick={() => startEditingGame(task)}
-                              className="p-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg border border-black cursor-pointer transition"
-                              title="Edytuj grę"
-                            >
-                              <Pencil className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              onClick={() => onDeleteDailyTask(task.id)}
-                              className="p-1.5 bg-rose-500 hover:bg-rose-600 text-white rounded-lg border border-black cursor-pointer transition"
-                              title="Usuń grę"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
+                  {/* Grouped Saturday Games List */}
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-xs font-black uppercase tracking-wider text-black flex items-center gap-2">
+                        <Gamepad2 className="w-4 h-4 text-[#FF4F81]" />
+                        <span>
+                          Gry Przypisane do Zjazdów {gamesFilterSaturday !== 'all' ? `(${gamesFilterSaturday})` : ''}
+                        </span>
+                      </h3>
+                      <span className="text-[11px] font-bold text-gray-700">
+                        Łącznie: {allDailyTasks.length} {allDailyTasks.length === 1 ? 'gra' : 'gier'}
+                      </span>
                     </div>
+
+                    {classEvents
+                      .filter((ev) => gamesFilterSaturday === 'all' || ev.dateStr === gamesFilterSaturday)
+                      .map((ev) => {
+                        const satTasks = allDailyTasks.filter((t) => {
+                          const td = (t.eventDateStr || t.date || '').toLowerCase().trim();
+                          const ed = ev.dateStr.toLowerCase().trim();
+                          return td === ed || (t.eventIsoDate && t.eventIsoDate === ev.isoDate);
+                        });
+
+                        // Extract active words from the first task with words
+                        const sampleWords = satTasks.find((t) => t.spelling && t.spelling.length > 0)?.spelling?.map((s) => cleanWord(s.word)).join(', ') ||
+                          satTasks.find((t) => t.wordSearch?.words)?.wordSearch?.words.map((w) => cleanWord(w.pl)).join(', ') || '';
+
+                        const isBatchEditingThisSat = batchEditSaturday === ev.dateStr;
+
+                        return (
+                          <div key={ev.id} className="bg-white p-5 rounded-2xl border-3 border-black shadow-[4px_4px_0px_black] space-y-4">
+                            {/* Saturday Block Header */}
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b-2 border-black">
+                              <div>
+                                <div className="flex items-center gap-2 flex-wrap mb-1">
+                                  <span className="bg-[#FF4F81] text-white text-[11px] px-2.5 py-0.5 rounded-lg border border-black font-black uppercase shadow-[1px_1px_0px_black]">
+                                    📅 {ev.dateStr}
+                                  </span>
+                                  {ev.topic && (
+                                    <span className="bg-[#FFD700] text-black text-[11px] px-2 py-0.5 rounded-lg border border-black font-black">
+                                      {ev.topic}
+                                    </span>
+                                  )}
+                                  <span className="bg-gray-100 text-gray-800 text-[10px] px-2 py-0.5 rounded border border-black font-bold">
+                                    {satTasks.length} {satTasks.length === 1 ? 'gra' : satTasks.length > 1 && satTasks.length < 5 ? 'gry' : 'gier'}
+                                  </span>
+                                </div>
+                                {sampleWords && (
+                                  <p className="text-[11px] font-bold text-gray-700 mt-1">
+                                    <span className="text-black font-black">Słówka zjazdu:</span> {sampleWords}
+                                  </p>
+                                )}
+                              </div>
+
+                              {/* Saturday Actions */}
+                              <div className="flex items-center gap-2 flex-wrap shrink-0">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (isBatchEditingThisSat) {
+                                      setBatchEditSaturday(null);
+                                    } else {
+                                      setBatchEditSaturday(ev.dateStr);
+                                      setBatchWordsInput(sampleWords || 'WAKACJE, SŁOŃCE, MORZE, GÓRY, ALFABET, SZKOŁA');
+                                    }
+                                  }}
+                                  className="bg-purple-600 hover:bg-purple-700 text-white border-2 border-black font-black px-3 py-1.5 rounded-xl text-xs uppercase shadow-[2px_2px_0px_black] cursor-pointer flex items-center gap-1.5 active:scale-95 transition"
+                                  title="Zmień słówka we wszystkich grach tego zjazdu na raz"
+                                >
+                                  <RefreshCw className="w-3.5 h-3.5" />
+                                  <span>{isBatchEditingThisSat ? 'Zamknij szybką edycję' : '⚡ Zmień słówka w zjeździe'}</span>
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setEditingTaskId(null);
+                                    setTaskSaturdayDate(ev.dateStr);
+                                    if (ev.topic) setTaskTopic(ev.topic);
+                                    setTaskTitle(`🔤 Gra: ${ev.topic || 'Zadanie'}`);
+                                    if (sampleWords) setTaskWordsInput(sampleWords);
+                                    document.getElementById('admin-game-form')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                  }}
+                                  className="bg-emerald-500 hover:bg-emerald-600 text-white border-2 border-black font-black px-3 py-1.5 rounded-xl text-xs uppercase shadow-[2px_2px_0px_black] cursor-pointer flex items-center gap-1.5 active:scale-95 transition"
+                                >
+                                  <Plus className="w-3.5 h-3.5" />
+                                  <span>Dodaj grę do tej soboty</span>
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Batch Words Editor Panel for this Saturday */}
+                            {isBatchEditingThisSat && (
+                              <div className="p-4 bg-purple-50 rounded-xl border-2 border-purple-800 space-y-3">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-xs font-black text-purple-950 uppercase flex items-center gap-1.5">
+                                    <RefreshCw className="w-4 h-4 text-purple-700" />
+                                    <span>Szybka Aktualizacja Słówek dla całego zjazdu ({ev.dateStr}):</span>
+                                  </span>
+                                  <span className="text-[10px] text-purple-900 font-bold">Dotyczy {satTasks.length} gier</span>
+                                </div>
+                                <p className="text-[11px] text-gray-800 font-bold">
+                                  Wpisz nową listę słów poniżej. Zostanie ona automatycznie zaktualizowana we wszystkich grach przypisanych do tej soboty!
+                                </p>
+                                <textarea
+                                  value={batchWordsInput}
+                                  onChange={(e) => setBatchWordsInput(e.target.value)}
+                                  rows={2}
+                                  placeholder="np. WAKACJE, SŁOŃCE, MORZE, GÓRY, ALFABET, SZKOŁA"
+                                  className="w-full px-3 py-2 rounded-xl border-2 border-black text-xs font-mono font-bold bg-white"
+                                />
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleBatchUpdateWordsForSaturday(ev.dateStr, batchWordsInput)}
+                                    className="bg-purple-700 hover:bg-purple-800 text-white border-2 border-black font-black px-4 py-2 rounded-xl text-xs uppercase shadow-[2px_2px_0px_black] cursor-pointer flex items-center gap-1.5"
+                                  >
+                                    <Check className="w-4 h-4" />
+                                    <span>Zastosuj nowe słówka do wszystkich {satTasks.length} gier</span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setBatchEditSaturday(null)}
+                                    className="bg-gray-200 hover:bg-gray-300 text-black border-2 border-black font-bold px-3 py-2 rounded-xl text-xs uppercase cursor-pointer"
+                                  >
+                                    Anuluj
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Games List for this Saturday */}
+                            {satTasks.length === 0 ? (
+                              <div className="p-4 bg-yellow-50 rounded-xl border-2 border-dashed border-black text-center">
+                                <p className="text-xs font-bold text-gray-700">
+                                  Brak przypisanych gier do tej soboty.
+                                </p>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setTaskSaturdayDate(ev.dateStr);
+                                    if (ev.topic) setTaskTopic(ev.topic);
+                                    document.getElementById('admin-game-form')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                  }}
+                                  className="mt-2 text-xs font-black text-[#FF4F81] underline uppercase cursor-pointer hover:text-pink-700"
+                                >
+                                  + Kliknij tutaj, aby utworzyć pierwszą grę dla {ev.dateStr.split(',')[1] || ev.dateStr}
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                {satTasks.map((task) => {
+                                  const isCurrentEditing = editingTaskId === task.id;
+                                  const wordsList = task.spelling?.map((s) => cleanWord(s.word)).join(', ') ||
+                                    task.wordSearch?.words?.map((w) => cleanWord(w.pl)).join(', ') || '';
+
+                                  return (
+                                    <div
+                                      key={task.id}
+                                      className={`p-3.5 rounded-xl border-2 border-black flex flex-col justify-between gap-3 text-xs transition ${
+                                        isCurrentEditing ? 'bg-amber-100 ring-2 ring-amber-500' : 'bg-yellow-50/80 hover:bg-yellow-100/90'
+                                      }`}
+                                    >
+                                      <div>
+                                        <div className="flex items-center justify-between gap-2 mb-1.5">
+                                          <span className="bg-white text-black text-[10px] px-2 py-0.5 rounded border border-black font-black uppercase">
+                                            {task.type === 'spelling' ? '🔤 Układanie Liter' :
+                                             task.type === 'secret_word' ? '🎯 Tajne Słowo' :
+                                             task.type === 'syllables' ? '🧩 Sylaby' :
+                                             task.type === 'wordsearch' ? '🔍 Wykreślanka' : task.type}
+                                          </span>
+                                          {isCurrentEditing && (
+                                            <span className="bg-amber-400 text-black text-[9px] px-1.5 py-0.2 rounded font-black uppercase">
+                                              Edytowana teraz
+                                            </span>
+                                          )}
+                                        </div>
+                                        <span className="font-black text-black text-sm block mb-1">{task.title}</span>
+                                        <p className="text-[11px] text-gray-800 font-bold mb-2">{task.description}</p>
+                                        {wordsList && (
+                                          <p className="text-[10px] text-gray-700 font-mono font-bold bg-white/70 p-1.5 rounded border border-black/30">
+                                            <span className="font-sans font-black text-black">Słowa ({task.spelling?.length || task.wordSearch?.words.length}):</span> {wordsList}
+                                          </p>
+                                        )}
+                                      </div>
+
+                                      <div className="flex items-center justify-end gap-2 pt-2 border-t border-black/20">
+                                        <button
+                                          type="button"
+                                          onClick={() => startEditingGame(task)}
+                                          className="flex-1 bg-amber-500 hover:bg-amber-600 text-white font-black py-2 px-3 rounded-xl border-2 border-black text-xs uppercase cursor-pointer shadow-[2px_2px_0px_black] active:scale-95 transition flex items-center justify-center gap-1.5"
+                                          title="Edytuj tę grę"
+                                        >
+                                          <Pencil className="w-3.5 h-3.5" />
+                                          <span>Edytuj grę</span>
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => onDeleteDailyTask(task.id)}
+                                          className="p-2 bg-rose-500 hover:bg-rose-600 text-white rounded-xl border-2 border-black cursor-pointer shadow-[2px_2px_0px_black] active:scale-95 transition"
+                                          title="Usuń grę"
+                                        >
+                                          <Trash2 className="w-4 h-4" />
+                                        </button>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                   </div>
                 </div>
               )}
@@ -1206,16 +1612,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                   <div className="bg-white p-5 rounded-2xl border-3 border-black shadow-[4px_4px_0px_black]">
                     <h3 className="text-sm font-black text-black uppercase mb-1 flex items-center gap-2">
                       {editingSummaryId ? <Pencil className="w-4 h-4 text-amber-500" /> : <Plus className="w-4 h-4 text-[#FF4F81]" />}
-                      <span>{editingSummaryId ? 'Edytujesz Podsumowanie Lekcji:' : 'Dodaj Nowe Podsumowanie Lekcji:'}</span>
+                      <span>{editingSummaryId ? 'Edytujesz Podsumowanie Zajęć:' : 'Dodaj Nowe Podsumowanie Zajęć:'}</span>
                     </h3>
                     <p className="text-xs font-bold text-gray-800 mb-3">
-                      Możesz dodawać dowolną liczbę punktów ćwiczonych umiejętności, zrobionych ćwiczeń oraz zadań domowych!
+                      Wpisz przebieg zajęć, skorzystaj z panelu formatowania tekstu (wyjustowanie, kolory, wyróżnienia) oraz dodaj ćwiczone umiejętności i zadania domowe!
                     </p>
 
                     <form onSubmit={handleAddSummarySubmit} className="space-y-4">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
-                          <label className="block text-[11px] font-black uppercase text-black mb-1">Data lekcji:</label>
+                          <label className="block text-[11px] font-black uppercase text-black mb-1">Data zjazdu sobotniego:</label>
                           <input
                             type="text"
                             value={sumDate}
@@ -1227,7 +1633,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                         </div>
 
                         <div>
-                          <label className="block text-[11px] font-black uppercase text-black mb-1">Temat lekcji:</label>
+                          <label className="block text-[11px] font-black uppercase text-black mb-1">Temat zajęć:</label>
                           <input
                             type="text"
                             value={sumTopic}
@@ -1239,19 +1645,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                         </div>
                       </div>
 
-                      <div>
-                        <label className="block text-[11px] font-black uppercase text-black mb-1">
-                          Główny opis lekcji (co robiliśmy):
-                        </label>
-                        <textarea
-                          value={sumDesc}
-                          onChange={(e) => setSumDesc(e.target.value)}
-                          required
-                          rows={2}
-                          placeholder="Omówiliśmy legendę o Syrence Warszawskiej, głośno czytaliśmy tekst i wykonywaliśmy wycinankę."
-                          className="w-full px-3 py-2 rounded-xl border-2 border-black text-xs font-bold bg-yellow-50"
-                        />
-                      </div>
+                      <RichTextEditor
+                        label="Główny opis i podsumowanie zajęć (z panelem formatowania):"
+                        value={sumDesc}
+                        onChange={setSumDesc}
+                        required
+                        rows={4}
+                        placeholder="Omówiliśmy legendę o Syrence Warszawskiej, głośno czytaliśmy tekst i wykonywaliśmy wycinankę..."
+                        helpText="Użyj bocznego panelu, aby wyjustować tekst, pogrubić, podkreślić, dodać kolor lub wyróżnić ważne fragmenty."
+                      />
 
                       {/* Ćwiczone umiejętności (dynamiczna lista) */}
                       <div className="bg-emerald-50 p-3.5 rounded-xl border-2 border-emerald-300 space-y-2">
@@ -1382,7 +1784,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                             editingSummaryId ? 'bg-amber-500 hover:bg-amber-600' : 'bg-emerald-500 hover:bg-emerald-600'
                           }`}
                         >
-                          {editingSummaryId ? '💾 Zapisz Zmiany Podsumowania ✏️' : '+ Opublikuj Podsumowanie Lekcji 📜'}
+                          {editingSummaryId ? '💾 Zapisz Zmiany Podsumowania ✏️' : '+ Opublikuj Podsumowanie Zajęć 📜'}
                         </button>
                         {editingSummaryId && (
                           <button
@@ -1400,16 +1802,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                   {/* List of summaries with delete & edit */}
                   <div className="bg-white p-5 rounded-2xl border-3 border-black shadow-[4px_4px_0px_black]">
                     <h3 className="text-xs font-black uppercase tracking-wider text-black mb-3">
-                      Opublikowane Podsumowania Lekcji ({summaries.length}):
+                      Opublikowane Podsumowania Zajęć ({summaries.length}):
                     </h3>
                     <div className="space-y-2">
                       {summaries.map((sum) => (
-                        <div key={sum.id} className="p-3 bg-yellow-50 rounded-xl border-2 border-black flex items-center justify-between gap-2 text-xs">
-                          <div>
-                            <span className="font-black text-black block">{sum.date} - {sum.topic}</span>
-                            <p className="text-[11px] text-gray-700 font-bold">{sum.description}</p>
+                        <div key={sum.id} className="p-3 bg-yellow-50 rounded-xl border-2 border-black flex items-start justify-between gap-2 text-xs">
+                          <div className="min-w-0 flex-1">
+                            <span className="font-black text-black block mb-1">{sum.date} — {sum.topic}</span>
+                            <div className="text-[11px] text-gray-800 font-bold leading-relaxed whitespace-pre-wrap">
+                              <FormattedText text={sum.description} />
+                            </div>
                           </div>
-                          <div className="flex items-center gap-1.5 shrink-0">
+                          <div className="flex items-center gap-1.5 shrink-0 ml-2">
                             <button
                               onClick={() => startEditingSummary(sum)}
                               className="p-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg border border-black cursor-pointer transition"

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { playSuccessSound, playErrorSound } from '../../utils/audio';
-import { Sparkles, Trophy, RefreshCw, Heart, CheckCircle2, RotateCcw, Lightbulb } from 'lucide-react';
+import { Sparkles, RefreshCw, Heart, CheckCircle2, RotateCcw } from 'lucide-react';
 import { SpellingItem } from '../../types';
+import { cleanWord } from '../../utils/wordHelpers';
 
 interface SecretWordGameProps {
   items: SpellingItem[];
@@ -24,10 +25,9 @@ export const SecretWordGame: React.FC<SecretWordGameProps> = ({ items, onComplet
   const currentItem = items[currentIndex] || {
     word: 'SYRENKA',
     hint: 'Symbol Warszawy z mieczem i tarczą',
-    emoji: '🧜‍♀️'
   };
 
-  const targetWord = currentItem.word.toUpperCase().replace(/\s+/g, '');
+  const targetWord = cleanWord(currentItem.word);
   const isWordGuessed = targetWord.split('').every((letter) => guessedLetters.includes(letter));
   const isGameOver = wrongGuesses.length >= maxHearts;
 
@@ -103,12 +103,14 @@ export const SecretWordGame: React.FC<SecretWordGameProps> = ({ items, onComplet
   if (completed) {
     return (
       <div className="bg-emerald-100 p-8 rounded-3xl border-4 border-black text-center space-y-4 shadow-[8px_8px_0px_black] animate-fade-in">
-        <Trophy className="w-16 h-16 text-yellow-500 mx-auto drop-shadow-[2px_2px_0px_black]" />
+        <div className="w-16 h-16 bg-emerald-400 rounded-full border-3 border-black flex items-center justify-center mx-auto shadow-[3px_3px_0px_black]">
+          <CheckCircle2 className="w-10 h-10 text-black" />
+        </div>
         <h3 className="text-2xl font-black text-black uppercase">
-          Brawo! Odgadłeś wszystkie tajemnicze słowa! 🎉
+          Brawo! Odgadłeś wszystkie słowa! 🎉
         </h3>
         <p className="text-sm font-bold text-gray-800">
-          Znasz już znakomicie polską ortografię i słownictwo z lekcji!
+          Znasz już znakomicie polską ortografię i słownictwo z zajęć!
         </p>
         <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
           <button
@@ -140,23 +142,20 @@ export const SecretWordGame: React.FC<SecretWordGameProps> = ({ items, onComplet
       rawHint.toLowerCase().includes('do poćwiczenia'));
 
   const displayHint = isRevealingWord || !rawHint.trim()
-    ? 'Odgadnij litery polskiego słowa!'
+    ? 'Odgadnij litery polskiego słowa:'
     : rawHint;
 
   return (
     <div className="bg-yellow-50 p-4 sm:p-6 rounded-3xl border-4 border-black shadow-[6px_6px_0px_black] space-y-6">
       {/* Top Header Bar */}
       <div className="flex items-center justify-between border-b-3 border-black pb-3">
-        <div className="flex items-center gap-2">
-          <span className="text-3xl">{currentItem.emoji || '🎯'}</span>
-          <div>
-            <h3 className="text-base sm:text-lg font-black text-black uppercase">
-              Tajne Słowo ({currentIndex + 1} z {items.length})
-            </h3>
-            <p className="text-xs font-bold text-gray-700">
-              Podpowiedź: {displayHint}
-            </p>
-          </div>
+        <div>
+          <span className="text-[10px] font-black uppercase text-[#FF4F81] block">
+            Słowo {currentIndex + 1} z {items.length}
+          </span>
+          <h3 className="text-base sm:text-lg font-black text-black uppercase">
+            Tajne Słowo: {displayHint}
+          </h3>
         </div>
 
         {/* Hearts */}
@@ -193,7 +192,7 @@ export const SecretWordGame: React.FC<SecretWordGameProps> = ({ items, onComplet
         })}
       </div>
 
-      {/* Masked Hint Button (Paróweczka) at the bottom */}
+      {/* Masked Hint Button at the bottom */}
       {!isWordGuessed && !isGameOver && (
         <div className="flex justify-center my-2">
           <button

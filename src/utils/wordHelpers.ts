@@ -1,4 +1,27 @@
-// Word to Emoji mapping and Polish Syllabifier for Grade 2 Polish School
+// Word to Emoji mapping, Syllabifier, and Word Cleaner for Grade 2 Polish School
+
+export function cleanWord(rawWord: string): string {
+  if (!rawWord) return '';
+  // Strip hyphens, en-dashes, em-dashes, slashes, and collapse inner spaces (e.g. "WAR - SZA - WA" -> "WARSZAWA")
+  return rawWord
+    .replace(/[-–—/]+/g, '')
+    .replace(/\s+/g, '')
+    .trim()
+    .toUpperCase();
+}
+
+/**
+ * Parses user input containing a list of words.
+ * Splits ONLY on commas, semicolons, or newlines (NEVER on hyphens!).
+ * Strips out internal hyphens from syllables (e.g., "SY-REN-KA, WAR-SZA-WA" -> ["SYRENKA", "WARSZAWA"]).
+ */
+export function parseWordList(rawInput: string): string[] {
+  if (!rawInput) return [];
+  return rawInput
+    .split(/[,;\n\r]+/)
+    .map((item) => cleanWord(item))
+    .filter((w) => w.length > 0);
+}
 
 export const POLISH_WORD_EMOJI_MAP: Record<string, string> = {
   // Symbole i Miasta
@@ -87,7 +110,7 @@ export const POLISH_WORD_EMOJI_MAP: Record<string, string> = {
 
 export function getEmojiForWord(rawWord: string): string {
   if (!rawWord) return '⭐';
-  const word = rawWord.trim().toUpperCase();
+  const word = cleanWord(rawWord);
 
   // 1. Exact match in dictionary
   if (POLISH_WORD_EMOJI_MAP[word]) {
@@ -204,13 +227,15 @@ export const POLISH_SYLLABLE_DICTIONARY: Record<string, string[]> = {
 
 export function splitPolishSyllables(rawWord: string): string[] {
   if (!rawWord) return [];
-  const word = rawWord.trim().toUpperCase();
+  const trimmed = rawWord.trim().toUpperCase();
 
-  // 1. Explicit hyphenation provided e.g. "WAR-SZA-WA" or "SO-BO-TA"
-  if (word.includes('-') || word.includes('/') || word.includes(' ')) {
-    const parts = word.split(/[-/\s]+/).filter(Boolean);
-    if (parts.length > 0) return parts;
+  // 1. Explicit hyphenation provided e.g. "WAR-SZA-WA" or "SO-BO-TA" or "WAR - SZA - WA"
+  if (trimmed.includes('-') || trimmed.includes('–') || trimmed.includes('—') || trimmed.includes('/')) {
+    const parts = trimmed.split(/[-–—/]+/).map((p) => p.trim()).filter(Boolean);
+    if (parts.length > 1) return parts;
   }
+
+  const word = cleanWord(rawWord);
 
   // 2. Check exact match in dictionary
   if (POLISH_SYLLABLE_DICTIONARY[word]) {

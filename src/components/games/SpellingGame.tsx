@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { SpellingItem } from '../../types';
 import { playSuccessSound, playClickSound } from '../../utils/audio';
-import { Sparkles, RefreshCw, CheckCircle2, Trophy, RotateCcw } from 'lucide-react';
+import { Sparkles, RefreshCw, CheckCircle2, RotateCcw } from 'lucide-react';
+import { cleanWord } from '../../utils/wordHelpers';
 
 interface SpellingGameProps {
   items: SpellingItem[];
@@ -25,7 +26,7 @@ export const SpellingGame: React.FC<SpellingGameProps> = ({ items, onComplete, o
   }, [currentIndex, items]);
 
   const setupWord = (word: string) => {
-    const uppercaseWord = word.toUpperCase().replace(/\s+/g, '');
+    const uppercaseWord = cleanWord(word);
     const letterObjs = uppercaseWord.split('').map((char, i) => ({
       id: `${char}-${i}-${Math.random()}`,
       letter: char,
@@ -51,13 +52,13 @@ export const SpellingGame: React.FC<SpellingGameProps> = ({ items, onComplete, o
     playClickSound();
     setShowError(false);
     // Remove from built
-    setBuiltLetters((prev) => prev.filter((l) => l.id !== letterObj.id));
+    setBuiltLetters((prev) => [...prev, letterObj]);
     // Put back to available
     setAvailableLetters((prev) => [...prev, letterObj]);
   };
 
   const handleCheckWord = () => {
-    const targetWord = currentItem.word.toUpperCase().replace(/\s+/g, '');
+    const targetWord = cleanWord(currentItem.word);
     const userWord = builtLetters.map((l) => l.letter).join('');
 
     if (userWord === targetWord) {
@@ -85,8 +86,8 @@ export const SpellingGame: React.FC<SpellingGameProps> = ({ items, onComplete, o
   if (isFinished) {
     return (
       <div className="bg-emerald-100 border-4 border-black p-8 rounded-3xl text-center space-y-4 shadow-[6px_6px_0px_black]">
-        <div className="w-16 h-16 bg-yellow-300 rounded-full border-3 border-black flex items-center justify-center text-3xl mx-auto shadow-[3px_3px_0px_black] rotate-3">
-          🏆
+        <div className="w-16 h-16 bg-emerald-400 rounded-full border-3 border-black flex items-center justify-center mx-auto shadow-[3px_3px_0px_black]">
+          <CheckCircle2 className="w-10 h-10 text-black" />
         </div>
         <h3 className="text-2xl sm:text-3xl font-black text-black uppercase">
           Brawo! Przećwiczyłeś wszystkie słówka! 🎉
@@ -116,7 +117,7 @@ export const SpellingGame: React.FC<SpellingGameProps> = ({ items, onComplete, o
     );
   }
 
-  const isWordLengthMatched = builtLetters.length === currentItem.word.toUpperCase().replace(/\s+/g, '').length;
+  const isWordLengthMatched = builtLetters.length === cleanWord(currentItem.word).length;
 
   const rawHint = currentItem.hint || '';
   const wordLower = currentItem.word ? currentItem.word.toLowerCase() : '';
@@ -127,23 +128,20 @@ export const SpellingGame: React.FC<SpellingGameProps> = ({ items, onComplete, o
       rawHint.toLowerCase().includes('do poćwiczenia'));
 
   const displayHint = isRevealingWord || !rawHint.trim()
-    ? 'Ułóż polskie słowo z poniższych kafelków z literami!'
+    ? 'Ułóż polskie słowo z poniższych kafelków z literami:'
     : rawHint;
 
   return (
     <div className="space-y-4 sm:space-y-6 w-full">
-      {/* Header bar */}
+      {/* Header bar - clean, no images/emojis */}
       <div className="flex items-center justify-between bg-yellow-100 p-3 sm:p-4 rounded-2xl border-3 border-black shadow-[3px_3px_0px_black] gap-2">
-        <div className="flex items-center gap-2.5 min-w-0">
-          <span className="text-2xl sm:text-3xl shrink-0">{currentItem.emoji || '✏️'}</span>
-          <div className="min-w-0">
-            <span className="text-[10px] font-black uppercase text-[#FF4F81] block">
-              Słowo {currentIndex + 1} z {items.length}
-            </span>
-            <h4 className="text-xs sm:text-base font-black text-black leading-snug break-words">
-              {displayHint}
-            </h4>
-          </div>
+        <div className="min-w-0">
+          <span className="text-[10px] font-black uppercase text-[#FF4F81] block">
+            Słowo {currentIndex + 1} z {items.length}
+          </span>
+          <h4 className="text-xs sm:text-base font-black text-black leading-snug break-words">
+            {displayHint}
+          </h4>
         </div>
 
         <button

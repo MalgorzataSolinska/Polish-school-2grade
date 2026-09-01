@@ -75,7 +75,10 @@ export interface SpellingItem {
 
 export interface DailyTask {
   id: string;
-  date: string;
+  date: string; // e.g. "Sobota, 22 Sierpnia 2026" or "2026-08-22"
+  eventDateStr?: string; // e.g. "Sobota, 22 Sierpnia 2026"
+  eventIsoDate?: string; // e.g. "2026-08-22"
+  topic?: string; // e.g. "Alfabet i Wspomnienia z Wakacji"
   title: string;
   titleEn?: string;
   description: string;

@@ -1,13 +1,7 @@
 import React, { useState } from 'react';
 import { DailyTask, Announcement, ClassEvent } from '../types';
-import { WordSearchGame } from './games/WordSearchGame';
-import { MatchingGame } from './games/MatchingGame';
-import { StoryGame } from './games/StoryGame';
-import { GeographyGame as GeographyQuizGame } from './games/GeographyGame';
-import { SpellingGame } from './games/SpellingGame';
-import { SecretWordGame } from './games/SecretWordGame';
-import { SyllableGame } from './games/SyllableGame';
-import { Clock, MapPin, Megaphone, CheckCircle2, Sparkles, Smile, Meh, Frown, AlertCircle, HeartHandshake, School, Mail, Phone, Gamepad2 } from 'lucide-react';
+import { Clock, Megaphone, Gamepad2, Mail, Phone } from 'lucide-react';
+import { FormattedText } from './FormattedText';
 
 interface HomeTabProps {
   announcements: Announcement[];
@@ -57,37 +51,15 @@ export const HomeTab: React.FC<HomeTabProps> = ({
     }
   }
 
-  // Feedback form state
-  const [rating, setRating] = useState<'super' | 'ok' | 'slabo'>('super');
-  const [studentNameInput, setStudentNameInput] = useState('');
-  const [parentEmailInput, setParentEmailInput] = useState('');
-  const [messageInput, setMessageInput] = useState('');
-  const [messageSent, setMessageSent] = useState(false);
-
-  const handleFeedbackSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!messageInput.trim()) return;
-
-    onSendMessage({
-      studentName: studentNameInput || 'Uczeń Klasy 2',
-      parentEmail: parentEmailInput || 'rodzic@polska-szkola.pl',
-      rating,
-      message: messageInput,
-    });
-
-    setMessageSent(true);
-    setMessageInput('');
-  };
-
   return (
-    <div className="space-y-8 animate-fade-in">
+    <div className="space-y-6 sm:space-y-8 animate-fade-in w-full">
       {/* 1. DATA NAJBLIŻSZEGO ZJAZDU - GŁÓWNA SEKCJA NA POCZĄTKU STRONY */}
       {nextClass && (
-        <section className="bg-[#FFD700] p-6 sm:p-7 rounded-3xl border-4 border-black shadow-[8px_8px_0px_black]">
+        <section className="bg-[#FFD700] p-5 sm:p-7 rounded-3xl border-4 border-black shadow-[8px_8px_0px_black]">
           <div className="flex flex-wrap items-center justify-between border-b-3 border-black pb-3 mb-4 gap-2">
             <div className="flex items-center gap-2">
               <span className="bg-[#FF4F81] text-white border-2 border-black px-3 py-1 rounded-xl text-xs sm:text-sm font-black uppercase tracking-wider shadow-[2px_2px_0px_black] flex items-center gap-1.5 rotate-[-1deg]">
-                <Clock className="w-4 h-4 text-yellow-200" />
+                <Clock className="w-4 h-4 text-yellow-200 shrink-0" />
                 <span>Data Najbliższego Zjazdu ⏰</span>
               </span>
             </div>
@@ -99,29 +71,32 @@ export const HomeTab: React.FC<HomeTabProps> = ({
             )}
           </div>
 
-          <div className="bg-white p-5 rounded-2xl border-3 border-black shadow-[4px_4px_0px_black]">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div>
+          <div className="bg-white p-4 sm:p-6 rounded-2xl border-3 border-black shadow-[4px_4px_0px_black]">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+              <div className="min-w-0 flex-1">
                 <span className="text-xs font-black text-[#FF4F81] uppercase tracking-wider block">
                   Najbliższe Spotkanie w Szkole:
                 </span>
-                <h2 className="text-2xl sm:text-4xl font-black text-black uppercase tracking-tight leading-tight mt-0.5">
+                <h2 className="text-xl sm:text-3xl md:text-4xl font-black text-black uppercase tracking-tight leading-tight mt-1 break-words">
                   {nextClass.dateStr}
                 </h2>
-                <p className="text-xs sm:text-sm font-bold text-gray-800 mt-1.5">
-                  Temat zajęć: <span className="font-black text-black bg-yellow-100 px-2 py-0.5 rounded border border-black">{nextClass.topic}</span>
-                </p>
+                <div className="text-xs sm:text-sm font-bold text-gray-800 mt-2.5 flex flex-wrap items-baseline gap-1.5">
+                  <span className="shrink-0 font-bold">Temat zajęć:</span>
+                  <span className="font-black text-black bg-yellow-100 px-2.5 py-1 rounded-lg border-2 border-black inline-block break-words max-w-full shadow-[1px_1px_0px_black]">
+                    {nextClass.topic || 'Zajęcia w klasie 2'}
+                  </span>
+                </div>
               </div>
 
-              <div className="flex items-center gap-3 shrink-0">
-                <div className="bg-yellow-100 p-3 rounded-2xl border-2 border-black text-center text-xs font-black shadow-[2px_2px_0px_black]">
+              <div className="flex items-center gap-2 sm:gap-3 shrink-0 flex-wrap sm:flex-nowrap">
+                <div className="flex-1 sm:flex-initial bg-yellow-100 p-3 rounded-2xl border-2 border-black text-center text-xs font-black shadow-[2px_2px_0px_black]">
                   <span className="text-[10px] uppercase text-gray-800 block">Godzina zajęć:</span>
-                  <span className="text-sm sm:text-base font-black text-black">{nextClass.time}</span>
+                  <span className="text-sm sm:text-base font-black text-black whitespace-nowrap">{nextClass.time}</span>
                 </div>
 
-                <div className="bg-pink-100 p-3 rounded-2xl border-2 border-black text-center text-xs font-black shadow-[2px_2px_0px_black]">
-                  <span className="text-[10px] uppercase text-gray-800 block">Sala lekcyjna:</span>
-                  <span className="text-sm sm:text-base font-black text-black">{nextClass.room}</span>
+                <div className="flex-1 sm:flex-initial bg-pink-100 p-3 rounded-2xl border-2 border-black text-center text-xs font-black shadow-[2px_2px_0px_black]">
+                  <span className="text-[10px] uppercase text-gray-800 block">Sala zajęć:</span>
+                  <span className="text-sm sm:text-base font-black text-black whitespace-nowrap">{nextClass.room}</span>
                 </div>
               </div>
             </div>
@@ -130,10 +105,10 @@ export const HomeTab: React.FC<HomeTabProps> = ({
       )}
 
       {/* 2. WAŻNE OGŁOSZENIA */}
-      <section className="bg-[#4F81FF] text-white p-6 sm:p-7 rounded-3xl border-4 border-black shadow-[8px_8px_0px_black]">
+      <section className="bg-[#4F81FF] text-white p-5 sm:p-7 rounded-3xl border-4 border-black shadow-[8px_8px_0px_black]">
         <div className="flex items-center justify-between gap-2 mb-4">
           <h2 className="text-xl sm:text-2xl font-black uppercase tracking-tight flex items-center gap-2 drop-shadow-[2px_2px_0px_black]">
-            <Megaphone className="w-6 h-6 text-yellow-300" />
+            <Megaphone className="w-6 h-6 text-yellow-300 shrink-0" />
             <span>Ważne Ogłoszenia 📢</span>
           </h2>
         </div>
@@ -163,14 +138,16 @@ export const HomeTab: React.FC<HomeTabProps> = ({
             {announcements.map((ann) => (
               <div
                 key={ann.id}
-                className="bg-white text-black p-4 rounded-2xl border-3 border-black shadow-[4px_4px_0px_black] flex flex-col justify-between"
+                className="bg-white text-black p-5 rounded-2xl border-3 border-black shadow-[4px_4px_0px_black] flex flex-col justify-between"
               >
                 <div>
-                  <span className="text-[10px] font-black bg-yellow-300 text-black border border-black px-2 py-0.5 rounded-md uppercase inline-block mb-2">
+                  <span className="text-[10px] font-black bg-yellow-300 text-black border border-black px-2 py-0.5 rounded-md uppercase inline-block mb-2 shadow-[1px_1px_0px_black]">
                     {ann.date}
                   </span>
-                  <h3 className="text-sm font-black text-black leading-snug">{ann.title}</h3>
-                  <p className="text-xs text-gray-800 font-bold mt-2 leading-relaxed">{ann.content}</p>
+                  <h3 className="text-sm sm:text-base font-black text-black leading-snug break-words">{ann.title}</h3>
+                  <div className="text-xs text-gray-800 font-bold mt-2 leading-relaxed whitespace-pre-wrap break-words">
+                    <FormattedText text={ann.content} />
+                  </div>
                 </div>
               </div>
             ))}
@@ -178,8 +155,35 @@ export const HomeTab: React.FC<HomeTabProps> = ({
         )}
       </section>
 
+      {/* 3. GRY ZE ZJAZDÓW SOBOTNICH */}
+      {onGoToGames && (
+        <section className="bg-white p-5 sm:p-7 rounded-3xl border-4 border-black shadow-[8px_8px_0px_black]">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="inline-flex items-center gap-1.5 bg-[#FFD700] px-2.5 py-0.5 rounded-lg border-2 border-black text-[10px] font-black uppercase shadow-[1px_1px_0px_black]">
+                <Gamepad2 className="w-3.5 h-3.5 text-[#FF4F81]" />
+                <span>Edukacyjne Gry Sobotnie</span>
+              </div>
+              <h2 className="text-xl sm:text-2xl font-black uppercase tracking-tight text-black">
+                Gry z Zajęć i Zjazdów 🎮
+              </h2>
+              <p className="text-xs font-bold text-gray-700 max-w-xl">
+                Wybierz zjazd, aby zagrać w interaktywne układanki, wykreślanki i zgadywanki ze słówkami z lekcji!
+              </p>
+            </div>
+
+            <button
+              onClick={onGoToGames}
+              className="bg-[#FF4F81] hover:bg-pink-600 text-white border-3 border-black font-black py-3 px-5 rounded-2xl text-xs uppercase shadow-[4px_4px_0px_black] active:scale-95 transition cursor-pointer flex items-center gap-2 shrink-0"
+            >
+              <span>Wybierz Zjazd i Graj ➔</span>
+            </button>
+          </div>
+        </section>
+      )}
+
       {/* 4. KONTAKT Z NAUCZYCIELKA */}
-      <section className="bg-[#FFD700] p-6 sm:p-8 rounded-3xl border-4 border-black shadow-[8px_8px_0px_black]">
+      <section className="bg-[#FFD700] p-5 sm:p-8 rounded-3xl border-4 border-black shadow-[8px_8px_0px_black]">
         <div className="max-w-3xl mx-auto space-y-6">
           <div className="text-center">
             <h2 className="text-2xl sm:text-3xl font-black text-black uppercase tracking-tight">
@@ -211,9 +215,6 @@ export const HomeTab: React.FC<HomeTabProps> = ({
                     href="mailto:msolinska@polishschool.org?subject=Szko%C5%82a%20Polska%20-%20Zapytanie%20od%20Rodzica"
                     target="_top"
                     rel="noopener noreferrer"
-                    onClick={() => {
-                      window.location.href = "mailto:msolinska@polishschool.org?subject=Szko%C5%82a%20Polska%20-%20Zapytanie%20od%20Rodzica";
-                    }}
                     className="w-full bg-[#4F81FF] text-white border-2 border-black font-black py-2 px-3 rounded-xl text-xs uppercase text-center cursor-pointer shadow-[2px_2px_0px_black] hover:bg-blue-600 active:scale-95 transition"
                   >
                     ✉️ Wyślij E-mail
@@ -242,9 +243,6 @@ export const HomeTab: React.FC<HomeTabProps> = ({
                     href="tel:6502815697"
                     target="_top"
                     rel="noopener noreferrer"
-                    onClick={() => {
-                      window.location.href = "tel:6502815697";
-                    }}
                     className="bg-[#FF4F81] text-white border-2 border-black font-black py-2 px-3 rounded-xl text-xs uppercase text-center cursor-pointer shadow-[2px_2px_0px_black] hover:bg-rose-600 active:scale-95 transition"
                   >
                     📞 Zadzwoń
@@ -253,9 +251,6 @@ export const HomeTab: React.FC<HomeTabProps> = ({
                     href="sms:6502815697"
                     target="_top"
                     rel="noopener noreferrer"
-                    onClick={() => {
-                      window.location.href = "sms:6502815697";
-                    }}
                     className="bg-emerald-400 text-black border-2 border-black font-black py-2 px-3 rounded-xl text-xs uppercase text-center cursor-pointer shadow-[2px_2px_0px_black] hover:bg-emerald-500 active:scale-95 transition"
                   >
                     💬 SMS

@@ -59,7 +59,60 @@ function sanitizeForFirestore<T>(obj: T): T {
   return JSON.parse(JSON.stringify(obj, (key, value) => (value === undefined ? null : value)));
 }
 
-const LOCAL_STORAGE_KEY = 'szkolka_cloud_data_cache_v3';
+const LOCAL_STORAGE_KEY = 'szkolka_cloud_data_cache_v4';
+
+export function normalizeDailyTasks(tasks: DailyTask[]): DailyTask[] {
+  if (!Array.isArray(tasks) || tasks.length === 0) {
+    return INITIAL_DAILY_TASKS;
+  }
+
+  const normalized = tasks.map((task) => {
+    let date = task.date || 'Sobota, 22 Sierpnia 2026';
+    let eventDateStr = task.eventDateStr || date;
+    let eventIsoDate = task.eventIsoDate;
+
+    if (!eventIsoDate || date.startsWith('Gra ') || date === 'Zadanie Pani Małgosi') {
+      if (
+        date.includes('22') ||
+        task.id.includes('22') ||
+        task.id === 'dt-1' ||
+        task.id === 'dt-2' ||
+        task.id === 'dt-3' ||
+        task.id === 'dt-4' ||
+        date.startsWith('Gra ')
+      ) {
+        date = 'Sobota, 22 Sierpnia 2026';
+        eventDateStr = 'Sobota, 22 Sierpnia 2026';
+        eventIsoDate = '2026-08-22';
+      } else if (date.includes('29') || task.id.includes('29')) {
+        date = 'Sobota, 29 Sierpnia 2026';
+        eventDateStr = 'Sobota, 29 Sierpnia 2026';
+        eventIsoDate = '2026-08-29';
+      }
+    }
+
+    return {
+      ...task,
+      date,
+      eventDateStr: eventDateStr || 'Sobota, 22 Sierpnia 2026',
+      eventIsoDate: eventIsoDate || (date.includes('29') ? '2026-08-29' : '2026-08-22'),
+      topic:
+        task.topic ||
+        (date.includes('29')
+          ? 'Alfabet i Wspomnienia z Wakacji: Pisanie i wypowiedzi ustne'
+          : 'Rozpoczęcie Roku Szkolnego i Pierwsze Słówka'),
+    };
+  });
+
+  // Ensure 29.08 games exist if not yet added to Firestore
+  const has2908 = normalized.some((t) => t.eventIsoDate === '2026-08-29' || t.date.includes('29'));
+  if (!has2908) {
+    const tasks2908 = INITIAL_DAILY_TASKS.filter((t) => t.eventIsoDate === '2026-08-29');
+    return [...normalized, ...tasks2908];
+  }
+
+  return normalized;
+}
 
 /**
  * Loads data from Firestore or local fallback
@@ -71,9 +124,10 @@ export async function loadSchoolData(): Promise<SchoolDatabaseState> {
 
     if (docSnap.exists()) {
       const data = docSnap.data() as Partial<SchoolDatabaseState>;
+      const rawTasks = Array.isArray(data.dailyTasks) ? data.dailyTasks : INITIAL_DATABASE_STATE.dailyTasks;
       const state: SchoolDatabaseState = {
         announcements: Array.isArray(data.announcements) ? data.announcements : INITIAL_DATABASE_STATE.announcements,
-        dailyTasks: Array.isArray(data.dailyTasks) ? data.dailyTasks : INITIAL_DATABASE_STATE.dailyTasks,
+        dailyTasks: normalizeDailyTasks(rawTasks),
         classSummaries: Array.isArray(data.classSummaries) ? data.classSummaries : INITIAL_DATABASE_STATE.classSummaries,
         worksheets: Array.isArray(data.worksheets) ? data.worksheets : INITIAL_DATABASE_STATE.worksheets,
         classEvents: Array.isArray(data.classEvents) ? data.classEvents : INITIAL_DATABASE_STATE.classEvents,
@@ -142,9 +196,10 @@ export function subscribeToSchoolData(onUpdate: (data: SchoolDatabaseState) => v
     (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data() as Partial<SchoolDatabaseState>;
+        const rawTasks = Array.isArray(data.dailyTasks) ? data.dailyTasks : INITIAL_DATABASE_STATE.dailyTasks;
         const updatedState: SchoolDatabaseState = {
           announcements: Array.isArray(data.announcements) ? data.announcements : INITIAL_DATABASE_STATE.announcements,
-          dailyTasks: Array.isArray(data.dailyTasks) ? data.dailyTasks : INITIAL_DATABASE_STATE.dailyTasks,
+          dailyTasks: normalizeDailyTasks(rawTasks),
           classSummaries: Array.isArray(data.classSummaries) ? data.classSummaries : INITIAL_DATABASE_STATE.classSummaries,
           worksheets: Array.isArray(data.worksheets) ? data.worksheets : INITIAL_DATABASE_STATE.worksheets,
           classEvents: Array.isArray(data.classEvents) ? data.classEvents : INITIAL_DATABASE_STATE.classEvents,
