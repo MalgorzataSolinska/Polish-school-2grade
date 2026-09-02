@@ -37,18 +37,10 @@ export const CalendarTab: React.FC<CalendarTabProps> = ({
 
   // Dynamic View Year & Month state
   const [viewYear, setViewYear] = useState<number>(() => {
-    if (currentEvent?.isoDate) {
-      const [y] = currentEvent.isoDate.split('-').map(Number);
-      if (!isNaN(y)) return y;
-    }
     return todayYear;
   });
 
   const [viewMonth, setViewMonth] = useState<number>(() => {
-    if (currentEvent?.isoDate) {
-      const [, m] = currentEvent.isoDate.split('-').map(Number);
-      if (!isNaN(m)) return m - 1;
-    }
     return todayMonth;
   });
 
@@ -67,6 +59,11 @@ export const CalendarTab: React.FC<CalendarTabProps> = ({
   };
 
   const handleNextMonth = () => {
+    // Limit to June (index 5) 2027
+    if (viewYear > 2027 || (viewYear === 2027 && viewMonth >= 5)) {
+      return;
+    }
+    
     if (viewMonth === 11) {
       setViewMonth(0);
       setViewYear((y) => y + 1);
@@ -181,11 +178,16 @@ export const CalendarTab: React.FC<CalendarTabProps> = ({
 
             <button
               onClick={handleNextMonth}
-              className="p-2 sm:p-2.5 rounded-xl border-2 border-black bg-yellow-200 hover:bg-yellow-300 cursor-pointer transition shadow-[2px_2px_0px_black] flex items-center gap-1 font-black text-xs uppercase"
+              disabled={viewYear > 2027 || (viewYear === 2027 && viewMonth >= 5)}
+              className={`p-2 sm:p-2.5 rounded-xl border-2 border-black flex items-center gap-1 font-black text-xs uppercase transition shadow-[2px_2px_0px_black] ${
+                viewYear > 2027 || (viewYear === 2027 && viewMonth >= 5) 
+                  ? 'bg-gray-200 text-gray-400 border-gray-400 shadow-none cursor-not-allowed'
+                  : 'bg-yellow-200 hover:bg-yellow-300 cursor-pointer text-black'
+              }`}
               title="Następny miesiąc"
             >
               <span className="hidden sm:inline">Następny</span>
-              <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-black" />
+              <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
           </div>
 

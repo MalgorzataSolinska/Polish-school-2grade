@@ -60,7 +60,7 @@ export const MatchingGame: React.FC<MatchingGameProps> = ({
     <div className="bg-rose-50/70 p-4 sm:p-6 rounded-3xl border-3 border-rose-300">
       <div className="flex items-center justify-between gap-2 mb-4">
         <div>
-          <h3 className="text-lg font-black text-rose-900 flex items-center gap-2 uppercase tracking-tight">
+          <h3 className="text-base sm:text-lg font-black text-black uppercase leading-snug break-words">
             🧩 Dopasuj Słowa do Obrazków!
           </h3>
           <p className="text-xs text-rose-800 font-bold">

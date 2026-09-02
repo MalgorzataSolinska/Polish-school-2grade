@@ -51,7 +51,7 @@ export const StoryGame: React.FC<StoryGameProps> = ({
             <BookOpen className="w-6 h-6" />
           </div>
           <div>
-            <h3 className="text-lg font-black text-indigo-950 uppercase tracking-tight">{data.title}</h3>
+            <h3 className="text-base sm:text-lg font-black text-black uppercase leading-snug break-words">{data.title}</h3>
             <p className="text-xs text-indigo-800 font-bold">
               Przeczytaj czytankę i odpowiedz na pytania ze zrozumieniem.
             </p>

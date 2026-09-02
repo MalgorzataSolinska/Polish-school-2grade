@@ -153,8 +153,8 @@ export const SecretWordGame: React.FC<SecretWordGameProps> = ({ items, onComplet
           <span className="text-[10px] font-black uppercase text-[#FF4F81] block">
             Słowo {currentIndex + 1} z {items.length}
           </span>
-          <h3 className="text-base sm:text-lg font-black text-black uppercase">
-            Tajne Słowo: {displayHint}
+          <h3 className="text-base sm:text-lg font-black text-black uppercase leading-snug break-words">
+            {displayHint}
           </h3>
         </div>
 

@@ -128,22 +128,21 @@ export const SpellingGame: React.FC<SpellingGameProps> = ({ items, onComplete, o
       rawHint.toLowerCase().includes('do poćwiczenia'));
 
   const displayHint = isRevealingWord || !rawHint.trim()
-    ? 'Ułóż polskie słowo z poniższych kafelków z literami:'
-    : rawHint;
+    ? 'Ułóż polskie słowo z kafelków'
+    : rawHint.replace('kafelków!', 'kafelków');
 
   return (
-    <div className="space-y-4 sm:space-y-6 w-full">
-      {/* Header bar - clean, no images/emojis */}
-      <div className="flex items-center justify-between bg-yellow-100 p-3 sm:p-4 rounded-2xl border-3 border-black shadow-[3px_3px_0px_black] gap-2">
+    <div className="bg-yellow-50 p-4 sm:p-6 rounded-3xl border-4 border-black shadow-[6px_6px_0px_black] space-y-6 w-full">
+      {/* Header bar */}
+      <div className="flex items-center justify-between border-b-3 border-black pb-3">
         <div className="min-w-0">
           <span className="text-[10px] font-black uppercase text-[#FF4F81] block">
             Słowo {currentIndex + 1} z {items.length}
           </span>
-          <h4 className="text-xs sm:text-base font-black text-black leading-snug break-words">
+          <h3 className="text-base sm:text-lg font-black text-black uppercase leading-snug break-words">
             {displayHint}
-          </h4>
+          </h3>
         </div>
-
         <button
           onClick={handleResetWord}
           className="p-2 bg-white text-black border-2 border-black rounded-xl text-xs font-black cursor-pointer hover:bg-yellow-200 shadow-[2px_2px_0px_black] shrink-0"
@@ -154,23 +153,28 @@ export const SpellingGame: React.FC<SpellingGameProps> = ({ items, onComplete, o
       </div>
 
       {/* Answer Slots / Built Letters */}
-      <div className="bg-yellow-50 p-4 sm:p-6 rounded-2xl sm:rounded-3xl border-3 sm:border-4 border-black min-h-[90px] sm:min-h-[110px] flex flex-wrap items-center justify-center gap-2 sm:gap-3 shadow-[4px_4px_0px_black] w-full">
-        {builtLetters.length === 0 ? (
-          <span className="text-xs sm:text-sm font-black text-gray-700 italic uppercase text-center px-2">
-            Klikaj lub dotykaj litery poniżej, aby ułożyć słowo...
-          </span>
-        ) : (
+      <div className="text-center space-y-3">
+        <span className="text-xs font-black uppercase text-black block">
+          Klikaj litery we właściwej kolejności:
+        </span>
+        <div className="flex flex-wrap justify-center items-center gap-2 sm:gap-3 min-h-[60px] sm:min-h-[80px] bg-white p-3 rounded-2xl border-3 border-black shadow-[3px_3px_0px_black] max-w-xl mx-auto w-full">
+          {builtLetters.length === 0 ? (
+            <span className="text-xs sm:text-sm font-black text-gray-400 italic uppercase text-center px-2">
+              Słowo
+            </span>
+          ) : (
           builtLetters.map((lObj) => (
             <button
               key={lObj.id}
               onClick={() => handleRemoveLetter(lObj)}
-              className="w-10 h-11 sm:w-14 sm:h-14 bg-[#FF4F81] text-white border-2 sm:border-3 border-black rounded-xl sm:rounded-2xl font-black text-lg sm:text-2xl shadow-[2px_2px_0px_black] sm:shadow-[3px_3px_0px_black] hover:scale-105 active:scale-95 cursor-pointer transition flex items-center justify-center shrink-0 whitespace-nowrap select-none"
+              className="w-9 h-11 sm:w-14 sm:h-16 bg-[#FFD700] text-black border-2 sm:border-3 border-black rounded-xl sm:rounded-2xl flex items-center justify-center text-lg sm:text-2xl font-black shadow-[2px_2px_0px_black] sm:shadow-[3px_3px_0px_black] hover:scale-105 active:scale-95 cursor-pointer transition shrink-0 whitespace-nowrap select-none"
               title="Kliknij, aby usunąć literę"
             >
               {lObj.letter}
             </button>
           ))
         )}
+        </div>
       </div>
 
       {/* Error message */}
@@ -179,25 +183,18 @@ export const SpellingGame: React.FC<SpellingGameProps> = ({ items, onComplete, o
           Spróbuj jeszcze raz! Kolejność liter jest niepoprawna. 🙈
         </div>
       )}
-
-      {/* Available Letters to Tap */}
-      <div className="space-y-2">
-        <span className="text-xs font-black uppercase text-gray-800 block text-center tracking-wide">
-          Dostępne litery (dotknij w odpowiedniej kolejności):
-        </span>
-
-        <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
+      
+        <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 my-4">
           {availableLetters.map((lObj) => (
             <button
               key={lObj.id}
               onClick={() => handleLetterTap(lObj)}
-              className="w-11 h-12 sm:w-14 sm:h-14 bg-white text-black border-2 sm:border-3 border-black rounded-xl sm:rounded-2xl font-black text-xl sm:text-2xl shadow-[3px_3px_0px_black] sm:shadow-[4px_4px_0px_black] hover:bg-yellow-200 active:scale-90 cursor-pointer transition flex items-center justify-center shrink-0 whitespace-nowrap select-none"
+              className="w-9 h-10 sm:w-11 sm:h-12 bg-white text-black border-2 border-black rounded-xl font-black text-xs sm:text-sm cursor-pointer transition active:scale-95 shadow-[2px_2px_0px_black] hover:bg-yellow-200 shrink-0 whitespace-nowrap select-none flex items-center justify-center"
             >
               {lObj.letter}
             </button>
           ))}
         </div>
-      </div>
 
       {/* Submit Button */}
       {isWordLengthMatched && (

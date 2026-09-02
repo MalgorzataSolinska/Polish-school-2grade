@@ -100,13 +100,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   // Game/Task Form State
   const [taskTitle, setTaskTitle] = useState('');
   const [taskType, setTaskType] = useState<GameType>('spelling');
-  const [taskDescription, setTaskDescription] = useState('Dotknij liter, aby ułożyć słowa z lekcji!');
-  const [taskWordsInput, setTaskWordsInput] = useState('WAKACJE, SŁOŃCE, MORZE, GÓRY, ALFABET, SZKOŁA');
+  const [taskDescription, setTaskDescription] = useState('');
+  const [taskWordsInput, setTaskWordsInput] = useState('');
   const [taskSaturdayDate, setTaskSaturdayDate] = useState('Sobota, 29 Sierpnia 2026');
   const [taskTopic, setTaskTopic] = useState('');
 
   // Calendar Event Form State
-  const [evDateStr, setEvDateStr] = useState('Sobota, 22 Sierpnia 2026');
+  const [evDateStr, setEvDateStr] = useState('Sobota,  2026');
   const [evIsoDate, setEvIsoDate] = useState('2026-08-22');
   const [evTopic, setEvTopic] = useState('');
   const [evTime, setEvTime] = useState('09:30 - 14:30');
@@ -116,20 +116,20 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
   // Worksheet Form State
   const [wsTitle, setWsTitle] = useState('');
-  const [wsCategory, setWsCategory] = useState<'polski' | 'czytanie' | 'geografia' | 'lamiglowki'>('polski');
+  const [wsCategory, setWsCategory] = useState('');
   const [wsDesc, setWsDesc] = useState('');
   const [wsPdfData, setWsPdfData] = useState<string | undefined>(undefined);
   const [wsFileName, setWsFileName] = useState<string>('');
   const [wsFileSize, setWsFileSize] = useState<string>('');
 
   // Class Summary Form State (Dynamic lists)
-  const [sumDate, setSumDate] = useState('Sobota, 22 Sierpnia 2026');
+  const [sumDate, setSumDate] = useState('');
   const [sumTopic, setSumTopic] = useState('');
   const [sumDesc, setSumDesc] = useState('');
-  const [sumSkillsList, setSumSkillsList] = useState<string[]>(['Czytanie ze zrozumieniem legend', 'Rozróżnianie RZ i Ż']);
-  const [sumActivitiesList, setSumActivitiesList] = useState<string[]>(['Głośne czytanie legendy o Syrence', 'Praca plastyczna z wycinanek']);
-  const [sumVocabInput, setSumVocabInput] = useState('Syrenka, Warszawa, Tarcza, Miecz, Rzeka, Orzeł');
-  const [sumHomeworkList, setSumHomeworkList] = useState<string[]>(['Nauczyć się pisowni 5 słówek z lekcji', 'Dokończyć stronę 14 w zeszycie ćwiczeń']);
+  const [sumSkillsList, setSumSkillsList] = useState<string[]>(['']);
+  const [sumActivitiesList, setSumActivitiesList] = useState<string[]>(['']);
+  const [sumVocabInput, setSumVocabInput] = useState('');
+  const [sumHomeworkList, setSumHomeworkList] = useState<string[]>(['']);
 
   // Editing IDs state
   const [editingAnnId, setEditingAnnId] = useState<string | null>(null);
@@ -186,7 +186,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const cancelEditGame = () => {
     setEditingTaskId(null);
     setTaskTitle('');
-    setTaskDescription('Dotknij liter, aby ułożyć słowa z lekcji!');
+    setTaskDescription('');
     setTaskWordsInput('WAKACJE, SŁOŃCE, MORZE, GÓRY, ALFABET, SZKOŁA');
     setTaskSaturdayDate('Sobota, 29 Sierpnia 2026');
     setTaskTopic('');
@@ -369,7 +369,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       const spellingItems: SpellingItem[] = rawWords.map((w, idx) => ({
         id: `sp-${idx}-${Date.now()}`,
         word: w,
-        hint: `Ułóż polskie słowo z kafelków!`,
+        hint: 'Ułóż polskie słowo z kafelków',
         emoji: getEmojiForWord(w),
       }));
       newTask.spelling = spellingItems;
@@ -411,7 +411,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         updatedTask.spelling = rawWords.map((w, idx) => ({
           id: `sp-${idx}-${Date.now()}`,
           word: w,
-          hint: `Ułóż polskie słowo z kafelków!`,
+          hint: 'Ułóż polskie słowo z kafelków',
           emoji: getEmojiForWord(w),
         }));
       } else if (task.type === 'wordsearch') {
@@ -1026,7 +1026,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                           value={taskDescription}
                           onChange={(e) => setTaskDescription(e.target.value)}
                           required
-                          placeholder="np. Dotknij liter i ułóż słowo z 29 sierpnia!"
+                          placeholder=""
                           className="w-full px-3 py-2 rounded-xl border-2 border-black text-xs font-bold bg-yellow-50"
                         />
                       </div>

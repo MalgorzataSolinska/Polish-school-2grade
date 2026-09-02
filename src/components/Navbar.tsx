@@ -30,7 +30,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     },
     {
       id: 'games',
-      label: 'Gry i Zadania 🎮',
+      label: 'Gry 🎮',
       icon: <Gamepad2 className="w-4 h-4 text-yellow-300" />,
       activeBg: 'bg-[#FF4F81] text-white',
     },

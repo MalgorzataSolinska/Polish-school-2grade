@@ -292,23 +292,23 @@ export const WordSearchGame: React.FC<WordSearchGameProps> = ({
   };
 
   return (
-    <div className="bg-amber-50/60 p-4 sm:p-6 rounded-3xl border-3 border-amber-300">
+    <div className="bg-yellow-50 p-4 sm:p-6 rounded-3xl border-4 border-black shadow-[6px_6px_0px_black] space-y-6 w-full">
       {/* Game Header */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-2 mb-4">
+      <div className="flex flex-col sm:flex-row items-center justify-between border-b-3 border-black pb-3 gap-2">
         <div>
-          <h3 className="text-lg font-black text-amber-900 flex items-center gap-2 uppercase tracking-tight">
-            🔍 Wykreślanka: Znajdź Słowa!
+          <h3 className="text-base sm:text-lg font-black text-black uppercase leading-snug break-words">
+            🔍 Wykreślanka: Znajdź Słowa
           </h3>
-          <p className="text-xs text-amber-800 font-bold">
-            Przeciągnij palcem/myszką po literach słowa (lub kliknij pierwszą i ostatnią literę).
+          <p className="text-xs text-black font-bold">
+            Przeciągnij palcem/myszką po literach słowa
           </p>
         </div>
 
         <button
           onClick={generateGrid}
-          className="bg-amber-200 hover:bg-amber-300 text-amber-900 px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1 cursor-pointer transition border-2 border-black shadow-[2px_2px_0px_black]"
+          className="p-2 bg-white text-black border-2 border-black rounded-xl text-xs font-black cursor-pointer hover:bg-yellow-200 shadow-[2px_2px_0px_black] shrink-0 flex items-center gap-1.5 uppercase"
         >
-          <RotateCcw className="w-3.5 h-3.5" />
+          <RotateCcw className="w-4 h-4" />
           <span>Wymieszaj litery</span>
         </button>
       </div>
@@ -344,10 +344,10 @@ export const WordSearchGame: React.FC<WordSearchGameProps> = ({
                     onPointerDown={() => handlePointerDownCell(r, c)}
                     className={`aspect-square w-full h-full text-[clamp(0.6rem,3.5vw,1.1rem)] font-black rounded-md sm:rounded-xl transition-all cursor-pointer flex items-center justify-center select-none border sm:border-2 ${
                       isSelected
-                        ? 'bg-rose-500 text-white border-black scale-110 shadow-[2px_2px_0px_black] animate-pulse z-10'
+                        ? 'bg-[#FF4F81] text-white border-black scale-110 shadow-[2px_2px_0px_black] z-10'
                         : isFoundCell
                         ? 'bg-emerald-400 text-black border-black font-black shadow-[1px_1px_0px_black] rotate-[-1deg]'
-                        : 'bg-amber-100/80 hover:bg-amber-200 text-black border-amber-300 hover:scale-105'
+                        : 'bg-white hover:bg-yellow-200 text-black border-black hover:scale-105'
                     }`}
                   >
                     {letter}

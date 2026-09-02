@@ -1,45 +1,49 @@
-import React, { useState } from 'react';
-import { DailyTask, Announcement, ClassEvent } from '../types';
-import { Clock, Megaphone, Gamepad2, Mail, Phone } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ClassEvent, Announcement, SchoolDatabaseState } from '../types';
+import { Clock, Megaphone, Phone, Mail, FileText, ChevronRight, Download } from 'lucide-react';
 import { FormattedText } from './FormattedText';
 
 interface HomeTabProps {
-  announcements: Announcement[];
-  dailyTask: DailyTask;
-  allDailyTasks: DailyTask[];
-  onSelectTask: (taskId: string) => void;
   classEvents: ClassEvent[];
-  onSendMessage: (msgData: { studentName: string; parentEmail: string; rating: 'super' | 'ok' | 'slabo'; message: string }) => void;
-  onGoToGames?: () => void;
-  isCloudSyncDone?: boolean;
+  announcements: Announcement[];
+  isCloudSyncDone: boolean;
 }
 
-export const HomeTab: React.FC<HomeTabProps> = ({
-  announcements,
-  dailyTask,
-  allDailyTasks,
-  onSelectTask,
-  classEvents,
-  onSendMessage,
-  onGoToGames,
-  isCloudSyncDone = true,
-}) => {
-  // Find next class based on today's date or marked status
-  const today = new Date();
-  const todayIso = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
-  
-  const sortedEvents = [...classEvents].sort((a, b) => a.isoDate.localeCompare(b.isoDate));
-  const upcomingEvents = sortedEvents.filter((e) => e.isoDate >= todayIso && !e.isHoliday);
-  const nextClass = upcomingEvents.length > 0
-    ? upcomingEvents[0]
-    : sortedEvents.find((e) => e.status === 'next') || sortedEvents[0];
+export const HomeTab: React.FC<HomeTabProps> = ({ classEvents, announcements, isCloudSyncDone }) => {
+  const [nextClass, setNextClass] = useState<ClassEvent | null>(null);
 
-  // Calculate days remaining
+  useEffect(() => {
+    if (!classEvents || classEvents.length === 0) return;
+
+    // First, look for an explicit "next" status
+    let upcoming = classEvents.find((e) => e.status === 'next');
+
+    // If none marked as 'next', find the earliest event in the future
+    if (!upcoming) {
+      const today = new Date().toISOString().split('T')[0];
+      const futureEvents = classEvents.filter(e => e.isoDate >= today);
+      if (futureEvents.length > 0) {
+        // sort by date ascending
+        futureEvents.sort((a, b) => a.isoDate.localeCompare(b.isoDate));
+        upcoming = futureEvents[0];
+      } else {
+        // Fallback to the latest event if all are in the past
+        upcoming = [...classEvents].sort((a, b) => b.isoDate.localeCompare(a.isoDate))[0];
+      }
+    }
+
+    setNextClass(upcoming || null);
+  }, [classEvents]);
+
+  // Days remaining calculation
   let daysRemainingText = '';
   if (nextClass) {
-    const nextDate = new Date(`${nextClass.isoDate}T00:00:00`);
-    const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    const diffTime = nextDate.getTime() - todayMidnight.getTime();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const target = new Date(nextClass.isoDate);
+    target.setHours(0, 0, 0, 0);
+
+    const diffTime = target.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     
     if (diffDays === 0) {
@@ -74,10 +78,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({
           <div className="bg-white p-4 sm:p-6 rounded-2xl border-3 border-black shadow-[4px_4px_0px_black]">
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
               <div className="min-w-0 flex-1">
-                <span className="text-xs font-black text-[#FF4F81] uppercase tracking-wider block">
-                  Najbliższe Spotkanie w Szkole:
-                </span>
-                <h2 className="text-xl sm:text-3xl md:text-4xl font-black text-black uppercase tracking-tight leading-tight mt-1 break-words">
+                <h2 className="text-xl sm:text-3xl md:text-4xl font-black text-black uppercase tracking-tight leading-tight break-words">
                   {nextClass.dateStr}
                 </h2>
                 <div className="text-xs sm:text-sm font-bold text-gray-800 mt-2.5 flex flex-wrap items-baseline gap-1.5">
@@ -134,7 +135,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className={`grid grid-cols-1 gap-4 ${announcements.length === 1 ? 'md:grid-cols-1' : announcements.length === 2 ? 'md:grid-cols-2' : 'md:grid-cols-3'}`}>
             {announcements.map((ann) => (
               <div
                 key={ann.id}
@@ -155,34 +156,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({
         )}
       </section>
 
-      {/* 3. GRY ZE ZJAZDÓW SOBOTNICH */}
-      {onGoToGames && (
-        <section className="bg-white p-5 sm:p-7 rounded-3xl border-4 border-black shadow-[8px_8px_0px_black]">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="space-y-1">
-              <div className="inline-flex items-center gap-1.5 bg-[#FFD700] px-2.5 py-0.5 rounded-lg border-2 border-black text-[10px] font-black uppercase shadow-[1px_1px_0px_black]">
-                <Gamepad2 className="w-3.5 h-3.5 text-[#FF4F81]" />
-                <span>Edukacyjne Gry Sobotnie</span>
-              </div>
-              <h2 className="text-xl sm:text-2xl font-black uppercase tracking-tight text-black">
-                Gry z Zajęć i Zjazdów 🎮
-              </h2>
-              <p className="text-xs font-bold text-gray-700 max-w-xl">
-                Wybierz zjazd, aby zagrać w interaktywne układanki, wykreślanki i zgadywanki ze słówkami z lekcji!
-              </p>
-            </div>
-
-            <button
-              onClick={onGoToGames}
-              className="bg-[#FF4F81] hover:bg-pink-600 text-white border-3 border-black font-black py-3 px-5 rounded-2xl text-xs uppercase shadow-[4px_4px_0px_black] active:scale-95 transition cursor-pointer flex items-center gap-2 shrink-0"
-            >
-              <span>Wybierz Zjazd i Graj ➔</span>
-            </button>
-          </div>
-        </section>
-      )}
-
-      {/* 4. KONTAKT Z NAUCZYCIELKA */}
+      {/* 3. KONTAKT Z NAUCZYCIELKA */}
       <section className="bg-[#FFD700] p-5 sm:p-8 rounded-3xl border-4 border-black shadow-[8px_8px_0px_black]">
         <div className="max-w-3xl mx-auto space-y-6">
           <div className="text-center">

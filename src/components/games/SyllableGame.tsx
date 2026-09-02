@@ -122,8 +122,8 @@ export const SyllableGame: React.FC<SyllableGameProps> = ({ items, onComplete, o
           <span className="text-[10px] font-black uppercase text-[#FF4F81] block">
             Słowo {currentIndex + 1} z {items.length}
           </span>
-          <h3 className="text-base sm:text-lg font-black text-black uppercase">
-            Układanka Sylabowa: {displayHint}
+          <h3 className="text-base sm:text-lg font-black text-black uppercase leading-snug break-words">
+            {displayHint}
           </h3>
         </div>
       </div>

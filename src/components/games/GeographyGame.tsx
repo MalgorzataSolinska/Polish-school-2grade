@@ -51,7 +51,7 @@ export const GeographyGame: React.FC<GeographyGameProps> = ({
     <div className="bg-emerald-50/70 p-4 sm:p-6 rounded-3xl border-3 border-emerald-300">
       <div className="flex items-center justify-between gap-2 mb-4">
         <div>
-          <h3 className="text-lg font-black text-emerald-950 flex items-center gap-2 uppercase tracking-tight">
+          <h3 className="text-base sm:text-lg font-black text-black uppercase leading-snug break-words">
             🇵🇱 Odkryj Polskę: Mini Quiz
           </h3>
           <p className="text-xs text-emerald-800 font-bold">
