@@ -19,7 +19,7 @@ export function parseWordList(rawInput: string): string[] {
   if (!rawInput) return [];
   return rawInput
     .split(/[,;\n\r]+/)
-    .map((item) => cleanWord(item))
+    .map((item) => item.trim().toUpperCase())
     .filter((w) => w.length > 0);
 }
 

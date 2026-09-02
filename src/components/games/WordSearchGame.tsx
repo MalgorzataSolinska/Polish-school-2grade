@@ -315,9 +315,12 @@ export const WordSearchGame: React.FC<WordSearchGameProps> = ({
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
         {/* Letter Grid Container with drag events */}
-        <div className="md:col-span-2 flex justify-center">
+        <div className="md:col-span-2 flex justify-center w-full">
           <div
-            className="inline-grid gap-1.5 p-3 bg-white rounded-2xl border-4 border-black shadow-[5px_5px_0px_black] touch-none select-none"
+            className="grid bg-white p-1.5 sm:p-3 rounded-2xl border-2 sm:border-4 border-black shadow-[3px_3px_0px_black] sm:shadow-[5px_5px_0px_black] touch-none select-none w-full max-w-[450px] mx-auto gap-1 sm:gap-1.5"
+            style={{
+              gridTemplateColumns: `repeat(${grid.length}, minmax(0, 1fr))`,
+            }}
             onPointerMove={(e) => handlePointerMoveGrid(e.clientX, e.clientY)}
             onPointerUp={handlePointerUpGrid}
             onPointerLeave={handlePointerUpGrid}
@@ -328,32 +331,30 @@ export const WordSearchGame: React.FC<WordSearchGameProps> = ({
             }}
             onTouchEnd={handlePointerUpGrid}
           >
-            {grid.map((row, r) => (
-              <div key={r} className="flex gap-1.5">
-                {row.map((letter, c) => {
-                  const isSelected = selectedIndices.some(([rowIdx, colIdx]) => rowIdx === r && colIdx === c);
-                  const isFoundCell = foundCells.some(([rowIdx, colIdx]) => rowIdx === r && colIdx === c);
+            {grid.map((row, r) =>
+              row.map((letter, c) => {
+                const isSelected = selectedIndices.some(([rowIdx, colIdx]) => rowIdx === r && colIdx === c);
+                const isFoundCell = foundCells.some(([rowIdx, colIdx]) => rowIdx === r && colIdx === c);
 
-                  return (
-                    <button
-                      key={c}
-                      data-row={r}
-                      data-col={c}
-                      onPointerDown={() => handlePointerDownCell(r, c)}
-                      className={`w-8 h-8 sm:w-10 sm:h-10 text-sm sm:text-base font-black rounded-xl transition-all cursor-pointer flex items-center justify-center select-none border-2 ${
-                        isSelected
-                          ? 'bg-rose-500 text-white border-black scale-110 shadow-[3px_3px_0px_black] animate-pulse z-10'
-                          : isFoundCell
-                          ? 'bg-emerald-400 text-black border-black font-black shadow-[2px_2px_0px_black] rotate-[-1deg]'
-                          : 'bg-amber-100/80 hover:bg-amber-200 text-black border-amber-300 hover:scale-105'
-                      }`}
-                    >
-                      {letter}
-                    </button>
-                  );
-                })}
-              </div>
-            ))}
+                return (
+                  <button
+                    key={`${r}-${c}`}
+                    data-row={r}
+                    data-col={c}
+                    onPointerDown={() => handlePointerDownCell(r, c)}
+                    className={`aspect-square w-full h-full text-[clamp(0.6rem,3.5vw,1.1rem)] font-black rounded-md sm:rounded-xl transition-all cursor-pointer flex items-center justify-center select-none border sm:border-2 ${
+                      isSelected
+                        ? 'bg-rose-500 text-white border-black scale-110 shadow-[2px_2px_0px_black] animate-pulse z-10'
+                        : isFoundCell
+                        ? 'bg-emerald-400 text-black border-black font-black shadow-[1px_1px_0px_black] rotate-[-1deg]'
+                        : 'bg-amber-100/80 hover:bg-amber-200 text-black border-amber-300 hover:scale-105'
+                    }`}
+                  >
+                    {letter}
+                  </button>
+                );
+              })
+            )}
           </div>
         </div>
 

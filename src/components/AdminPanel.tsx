@@ -169,11 +169,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
     let words = '';
     if (task.spelling && task.spelling.length > 0) {
-      words = task.spelling.map((s) => cleanWord(s.word)).join(', ');
+      words = task.spelling.map((s) => s.word).join(', ');
     } else if (task.wordSearch?.words) {
-      words = task.wordSearch.words.map((w) => cleanWord(w.pl)).join(', ');
+      words = task.wordSearch.words.map((w) => w.pl).join(', ');
     } else if (task.matching && task.matching.length > 0) {
-      words = task.matching.map((m) => cleanWord(m.wordPl)).join(', ');
+      words = task.matching.map((m) => m.wordPl).join(', ');
     }
     setTaskWordsInput(words);
 
@@ -368,14 +368,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     if (taskType === 'spelling' || taskType === 'secret_word' || taskType === 'syllables') {
       const spellingItems: SpellingItem[] = rawWords.map((w, idx) => ({
         id: `sp-${idx}-${Date.now()}`,
-        word: cleanWord(w),
+        word: w,
         hint: `Ułóż polskie słowo z kafelków!`,
         emoji: getEmojiForWord(w),
       }));
       newTask.spelling = spellingItems;
     } else if (taskType === 'wordsearch') {
       newTask.wordSearch = {
-        words: rawWords.map((w) => ({ pl: cleanWord(w), en: cleanWord(w) })),
+        words: rawWords.map((w) => ({ pl: w, en: w })),
         gridSize: 8,
       };
     }
@@ -410,13 +410,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       if (task.type === 'spelling' || task.type === 'secret_word' || task.type === 'syllables') {
         updatedTask.spelling = rawWords.map((w, idx) => ({
           id: `sp-${idx}-${Date.now()}`,
-          word: cleanWord(w),
+          word: w,
           hint: `Ułóż polskie słowo z kafelków!`,
           emoji: getEmojiForWord(w),
         }));
       } else if (task.type === 'wordsearch') {
         updatedTask.wordSearch = {
-          words: rawWords.map((w) => ({ pl: cleanWord(w), en: cleanWord(w) })),
+          words: rawWords.map((w) => ({ pl: w, en: w })),
           gridSize: 8,
         };
       }
@@ -1094,8 +1094,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                         });
 
                         // Extract active words from the first task with words
-                        const sampleWords = satTasks.find((t) => t.spelling && t.spelling.length > 0)?.spelling?.map((s) => cleanWord(s.word)).join(', ') ||
-                          satTasks.find((t) => t.wordSearch?.words)?.wordSearch?.words.map((w) => cleanWord(w.pl)).join(', ') || '';
+                        const sampleWords = satTasks.find((t) => t.spelling && t.spelling.length > 0)?.spelling?.map((s) => s.word).join(', ') ||
+                          satTasks.find((t) => t.wordSearch?.words)?.wordSearch?.words.map((w) => w.pl).join(', ') || '';
 
                         const isBatchEditingThisSat = batchEditSaturday === ev.dateStr;
 
@@ -1223,8 +1223,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                 {satTasks.map((task) => {
                                   const isCurrentEditing = editingTaskId === task.id;
-                                  const wordsList = task.spelling?.map((s) => cleanWord(s.word)).join(', ') ||
-                                    task.wordSearch?.words?.map((w) => cleanWord(w.pl)).join(', ') || '';
+                                  const wordsList = task.spelling?.map((s) => s.word).join(', ') ||
+                                    task.wordSearch?.words?.map((w) => w.pl).join(', ') || '';
 
                                   return (
                                     <div
