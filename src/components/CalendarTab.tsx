@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import { ClassEvent, ClassSummary, DailyTask } from '../types';
-import { Calendar as CalendarIcon, Clock, MapPin, ChevronLeft, ChevronRight, AlertCircle, BookOpen, ArrowUp, ArrowDown, Gamepad2 } from 'lucide-react';
+import { Calendar as CalendarIcon, Clock, MapPin, ChevronLeft, ChevronRight, AlertCircle, BookOpen, Gamepad2 } from 'lucide-react';
 
 interface CalendarTabProps {
   classEvents: ClassEvent[];
@@ -82,44 +82,6 @@ export const CalendarTab: React.FC<CalendarTabProps> = ({
       }
     }
   };
-
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const currentEventRef = useRef<HTMLDivElement>(null);
-
-  // Helper: Find summary for a specific event
-  const getSummaryForEvent = (event: ClassEvent) => {
-    if (!summaries || summaries.length === 0) return undefined;
-    return summaries.find((s) => {
-      const sDate = s.date.trim().toLowerCase();
-      const evDate = event.dateStr.trim().toLowerCase();
-      return sDate === evDate || sDate.includes(evDate) || evDate.includes(sDate);
-    });
-  };
-
-  // Helper: Find games for a specific event
-  const getGamesForEvent = (event: ClassEvent) => {
-    if (!allDailyTasks || allDailyTasks.length === 0) return [];
-    return allDailyTasks.filter((t) => {
-      const evDate = event.dateStr.trim().toLowerCase();
-      const tEventDate = (t.eventDateStr || '').trim().toLowerCase();
-      const tDate = (t.date || '').trim().toLowerCase();
-      return (
-        (tEventDate && (tEventDate === evDate || tEventDate.includes(evDate) || evDate.includes(tEventDate))) ||
-        (tDate && (tDate === evDate || tDate.includes(evDate) || evDate.includes(tDate))) ||
-        (t.eventIsoDate && t.eventIsoDate === event.isoDate) ||
-        (t.date && t.date.includes(event.isoDate))
-      );
-    });
-  };
-
-  // Auto scroll to current Saturday at top of list container
-  useEffect(() => {
-    if (currentEventRef.current && scrollContainerRef.current) {
-      const container = scrollContainerRef.current;
-      const element = currentEventRef.current;
-      container.scrollTop = element.offsetTop - container.offsetTop - 8;
-    }
-  }, [sortedEvents]);
 
   // Helper: Find class event on a specific day of the current month
   const getEventForDay = (dayNumber: number) => {
@@ -384,96 +346,6 @@ export const CalendarTab: React.FC<CalendarTabProps> = ({
               <p className="text-xs font-black text-gray-800">Kliknij wybraną sobotę w kalendarzu, aby zobaczyć temat zajęć!</p>
             </div>
           )}
-
-          {/* Full List of Saturdays (Scrollable, current at top) */}
-          <div className="bg-white p-5 rounded-3xl border-4 border-black shadow-[6px_6px_0px_black]">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-black text-black uppercase flex items-center gap-2">
-                <BookOpen className="w-4 h-4 text-[#FF4F81]" />
-                <span>Zjazdy Semestru</span>
-              </h3>
-              <span className="text-[10px] font-bold text-gray-700 bg-yellow-100 border border-black px-2 py-0.5 rounded-full flex items-center gap-1">
-                <ArrowUp className="w-3 h-3 text-gray-600" /> Przewiń listę <ArrowDown className="w-3 h-3 text-gray-600" />
-              </span>
-            </div>
-
-            <div
-              ref={scrollContainerRef}
-              className="space-y-2 max-h-72 overflow-y-auto pr-1 scroll-smooth"
-            >
-              {sortedEvents.map((ev) => {
-                const isCurrentNext = ev.status === 'next';
-                const isSelected = ev.id === selectedEventId;
-                const evSummary = getSummaryForEvent(ev);
-                const evGames = getGamesForEvent(ev);
-
-                return (
-                  <div
-                    key={ev.id}
-                    ref={isCurrentNext ? currentEventRef : null}
-                    onClick={() => handleSelectEvent(ev)}
-                    className={`p-2.5 rounded-2xl border-2 border-black text-left text-xs font-black transition cursor-pointer flex items-center justify-between gap-2 ${
-                      isSelected
-                        ? 'bg-[#FFD700] shadow-[3px_3px_0px_black] ring-2 ring-black'
-                        : isCurrentNext
-                        ? 'bg-yellow-200 border-4 border-black shadow-[3px_3px_0px_black]'
-                        : ev.isHoliday
-                        ? 'bg-rose-50 hover:bg-rose-100'
-                        : 'bg-yellow-50 hover:bg-yellow-100'
-                    }`}
-                  >
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5">
-                        {isCurrentNext && (
-                          <span className="bg-[#FF4F81] text-white text-[9px] px-1.5 py-0.2 rounded font-black uppercase">
-                            Obecne
-                          </span>
-                        )}
-                        <span className="truncate">{ev.dateStr}</span>
-                      </div>
-                      <span className="text-[10px] font-semibold text-gray-700 block truncate">
-                        {ev.isHoliday ? '🛑 Wolne' : ev.topic}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-1 shrink-0">
-                      {evGames.length > 0 && onNavigateToGames && !ev.isHoliday && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onNavigateToGames(ev.dateStr);
-                          }}
-                          className="text-[10px] bg-[#FF4F81] hover:bg-pink-600 text-white border-2 border-black px-2 py-1 rounded-xl font-black uppercase shadow-[2px_2px_0px_black] shrink-0 active:scale-95 transition cursor-pointer flex items-center gap-1"
-                          title="Przejdź do gier z tego zjazdu"
-                        >
-                          <span>Gry ({evGames.length})</span>
-                          <Gamepad2 className="w-3 h-3 text-yellow-300" />
-                        </button>
-                      )}
-
-                      {evSummary && onNavigateToSummary && !ev.isHoliday ? (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onNavigateToSummary(ev.dateStr);
-                          }}
-                          className="text-[10px] bg-[#4F81FF] hover:bg-blue-600 text-white border-2 border-black px-2 py-1 rounded-xl font-black uppercase shadow-[2px_2px_0px_black] shrink-0 active:scale-95 transition cursor-pointer flex items-center gap-1"
-                          title="Przejdź do podsumowania zajęć"
-                        >
-                          <span>Podsumowanie</span>
-                          <BookOpen className="w-3 h-3" />
-                        </button>
-                      ) : !evGames.length ? (
-                        <span className="text-[10px] bg-white border border-black px-1.5 py-0.5 rounded uppercase shrink-0 font-bold text-gray-600">
-                          {ev.isHoliday ? 'Wolne' : 'Zajęcia'}
-                        </span>
-                      ) : null}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
         </div>
       </div>
     </div>

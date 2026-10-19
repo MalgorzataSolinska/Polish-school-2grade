@@ -104,15 +104,15 @@ export const FormattedText: React.FC<FormattedTextProps> = ({ text, className = 
 
     if (isBullet) {
       return (
-        <li key={key} className="flex items-start gap-2 my-1 text-black font-bold">
-          <span className="text-[#FF4F81] font-black text-base leading-none select-none">•</span>
-          <span className="flex-1">{parts}</span>
+        <li key={key} className="flex items-start gap-2 my-1 text-black font-bold break-words [overflow-wrap:anywhere] [word-break:break-word] min-w-0 max-w-full">
+          <span className="text-[#FF4F81] font-black text-base leading-none select-none shrink-0 mt-0.5">•</span>
+          <span className="flex-1 min-w-0 break-words [overflow-wrap:anywhere] [word-break:break-word]">{parts}</span>
         </li>
       );
     }
 
     return (
-      <p key={key} className="my-1.5 leading-relaxed font-bold">
+      <p key={key} className="my-1.5 leading-relaxed font-bold break-words [overflow-wrap:anywhere] [word-break:break-word] min-w-0 max-w-full">
         {parts}
       </p>
     );
@@ -145,7 +145,7 @@ export const FormattedText: React.FC<FormattedTextProps> = ({ text, className = 
   }
 
   return (
-    <div className={`space-y-2 text-black ${className}`}>
+    <div className={`space-y-2 text-black break-words [overflow-wrap:anywhere] [word-break:break-word] min-w-0 max-w-full ${className}`}>
       {sections.map((section, sIdx) => {
         let alignClass = 'text-left';
         if (section.align === 'center') alignClass = 'text-center';
@@ -155,7 +155,7 @@ export const FormattedText: React.FC<FormattedTextProps> = ({ text, className = 
         const lines = section.content.split('\n');
 
         return (
-          <div key={`sec-${sIdx}`} className={alignClass}>
+          <div key={`sec-${sIdx}`} className={`${alignClass} break-words [overflow-wrap:anywhere] [word-break:break-word] min-w-0 max-w-full`}>
             {lines.map((line, lIdx) => {
               if (line.trim() === '') {
                 return <div key={`empty-${lIdx}`} className="h-2" />;

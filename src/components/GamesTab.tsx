@@ -14,6 +14,8 @@ import {
   BookOpen,
   CheckCircle2,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   ArrowRight,
 } from 'lucide-react';
 
@@ -50,16 +52,6 @@ const getSaturdayCountDeclension = (count: number) => {
     return 'Zjazdy Sobotnie';
   }
   return 'Zjazdów Sobotnich';
-};
-
-const getAvailableZjazdyLabel = (count: number) => {
-  if (count === 1) return '1 dostępny zjazd';
-  const lastDigit = count % 10;
-  const lastTwo = count % 100;
-  if (lastDigit >= 2 && lastDigit <= 4 && (lastTwo < 12 || lastTwo > 14)) {
-    return `${count} dostępne zjazdy`;
-  }
-  return `${count} dostępnych zjazdów`;
 };
 
 export const GamesTab: React.FC<GamesTabProps> = ({
@@ -123,6 +115,17 @@ export const GamesTab: React.FC<GamesTabProps> = ({
     return currentGroup?.tasks[0]?.id || dailyTask?.id || allDailyTasks[0]?.id || '';
   });
 
+  // Collapsible toggle for Saturday cards grid (collapsed by default to prevent long scrolling)
+  const [isModulesExpanded, setIsModulesExpanded] = useState<boolean>(false);
+
+  // Helper: extract short readable label for quick date pills (e.g. "26 Września", "12 Września")
+  const getShortDateLabel = (dateStr: string) => {
+    return dateStr
+      .replace(/^Sobota,\s*/i, '')
+      .replace(/\s*2026/g, '')
+      .trim();
+  };
+
   // Handle targetDate jump from Calendar or External navigation
   useEffect(() => {
     if (targetDate) {
@@ -138,6 +141,7 @@ export const GamesTab: React.FC<GamesTabProps> = ({
           setActiveTaskId(match.tasks[0].id);
           onSelectTask(match.tasks[0].id);
         }
+        setIsModulesExpanded(false);
         const element = document.getElementById('selected-week-module');
         if (element) {
           element.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -161,17 +165,22 @@ export const GamesTab: React.FC<GamesTabProps> = ({
 
   const activeTask = activeGroup?.tasks.find((t) => t.id === activeTaskId) || activeGroup?.tasks[0];
 
-  const handleSelectModule = (dateKey: string) => {
+  const handleSelectModule = (dateKey: string, autoCollapse = true) => {
     setSelectedWeekKey(dateKey);
     const targetGrp = groupedWeeks.find((g) => g.dateKey === dateKey);
     if (targetGrp && targetGrp.tasks[0]) {
       setActiveTaskId(targetGrp.tasks[0].id);
       onSelectTask(targetGrp.tasks[0].id);
     }
-    const element = document.getElementById('selected-week-module');
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (autoCollapse) {
+      setIsModulesExpanded(false);
     }
+    setTimeout(() => {
+      const element = document.getElementById('selected-week-module');
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 60);
   };
 
   const handleNextGameInWeek = () => {
@@ -241,66 +250,150 @@ export const GamesTab: React.FC<GamesTabProps> = ({
         </div>
       </section>
 
-      {/* KROK 1: WYBÓR ZJAZDU */}
-      <section className="bg-white p-5 sm:p-7 rounded-3xl border-4 border-black shadow-[8px_8px_0px_black] space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b-3 border-black pb-3">
-          <div>
-            <h2 className="text-sm sm:text-base font-black uppercase tracking-tight text-black flex items-center gap-2">
-              <Layers className="w-4 h-4 text-[#FF4F81]" />
-              <span>Kliknij w kafelek i wybierz zjazd sobotni:</span>
-            </h2>
-         
+      {/* KROK 1: WYBÓR ZJAZDU (ZWIJALNY) */}
+      <section className="bg-white p-4 sm:p-5 rounded-3xl border-4 border-black shadow-[8px_8px_0px_black] space-y-3 sm:space-y-4">
+        {/* Top Control Bar */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-xl bg-[#FFD700] border-2 border-black flex items-center justify-center shrink-0 shadow-[2px_2px_0px_black]">
+              <Layers className="w-5 h-5 text-[#FF4F81]" />
+            </div>
+            <div className="min-w-0">
+              <span className="text-[10px] font-black uppercase text-gray-700 tracking-wider block">
+                Aktywny Zjazd Sobotni:
+              </span>
+              <h2 className="text-sm sm:text-base md:text-lg font-black text-black leading-tight mt-0.5 truncate">
+                {activeGroup?.displayDate}
+              </h2>
+            </div>
           </div>
 
-          <span className="bg-yellow-200 text-black border-2 border-black px-3 py-1 rounded-xl text-xs font-black self-start sm:self-auto">
-            {getAvailableZjazdyLabel(groupedWeeks.length)}
+          <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+            {/* Toggle Full Grid button */}
+            <button
+              onClick={() => setIsModulesExpanded(!isModulesExpanded)}
+              className={`px-3.5 py-2 rounded-xl border-2 border-black font-black text-xs uppercase flex items-center gap-1.5 shadow-[2px_2px_0px_black] active:scale-95 transition cursor-pointer whitespace-nowrap ${
+                isModulesExpanded
+                  ? 'bg-black text-yellow-300'
+                  : 'bg-[#FFD700] hover:bg-yellow-300 text-black'
+              }`}
+            >
+              {isModulesExpanded ? (
+                <>
+                  <ChevronUp className="w-4 h-4 text-yellow-300" />
+                  <span>Zwiń kafelki ▴</span>
+                </>
+              ) : (
+                <>
+                  <ChevronDown className="w-4 h-4 text-[#FF4F81]" />
+                  <span>Wszystkie zjazdy ({groupedWeeks.length}) ▾</span>
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* Quick Date Pills: 1-click switching with zero scrolling */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-1 no-scrollbar border-t border-black/10">
+          <span className="text-[10px] font-black uppercase text-gray-600 whitespace-nowrap shrink-0">
+            Szybki wybór:
           </span>
+          <div className="flex items-center gap-1.5 flex-nowrap shrink-0">
+            {groupedWeeks.map((group, idx) => {
+              const isSelected = selectedWeekKey === group.dateKey;
+              return (
+                <button
+                  key={group.dateKey}
+                  onClick={() => handleSelectModule(group.dateKey, false)}
+                  className={`px-2.5 py-1 rounded-xl text-xs font-black border-2 border-black transition cursor-pointer whitespace-nowrap shadow-[2px_2px_0px_black] active:scale-95 ${
+                    isSelected
+                      ? 'bg-[#FF4F81] text-white ring-2 ring-black scale-105'
+                      : 'bg-white hover:bg-yellow-100 text-black'
+                  }`}
+                >
+                  {getShortDateLabel(group.displayDate)}
+                  {idx === 0 && <span className="ml-1 text-[9px] bg-yellow-300 text-black px-1 rounded">nowy</span>}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
-        {/* Module Cards Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-          {groupedWeeks.map((group, gIdx) => {
-            const isSelected = selectedWeekKey === group.dateKey;
-            const isLatest = gIdx === 0;
-
-            return (
+        {/* Collapsible Full Grid of Saturday Cards */}
+        {isModulesExpanded && (
+          <div className="pt-3 border-t-2 border-black space-y-3 animate-fade-in">
+            <div className="flex items-center justify-between text-xs font-black text-gray-700">
+              <span>Wszystkie zjazdy sobotnie (kliknij, aby wybrać i zobaczyć gry):</span>
               <button
-                key={group.dateKey}
-                onClick={() => handleSelectModule(group.dateKey)}
-                className={`p-4 rounded-2xl border-3 border-black text-left flex flex-col justify-between gap-4 transition-all cursor-pointer relative ${
-                  isSelected
-                    ? 'bg-[#FFD700] text-black shadow-[6px_6px_0px_black] ring-3 ring-black scale-[1.02]'
-                    : 'bg-yellow-50/70 hover:bg-yellow-100 text-black shadow-[3px_3px_0px_black] hover:translate-y-[-2px]'
-                }`}
+                onClick={() => setIsModulesExpanded(false)}
+                className="text-[11px] underline text-[#FF4F81] hover:text-pink-700 cursor-pointer font-black"
               >
-                <div>
-                  <div className="flex items-center justify-start gap-2 mb-2 min-h-[22px]">
-                    {isLatest && (
-                      <span className="bg-[#FF4F81] text-white text-[9px] font-black px-2 py-0.5 rounded-full uppercase border border-black">
-                        Najnowszy
-                      </span>
-                    )}
-                  </div>
-
-                  <h3 className="text-sm sm:text-base font-black text-black leading-tight break-words">
-                    {group.displayDate}
-                  </h3>
-                  <p className="text-xs font-bold text-gray-800 mt-1 line-clamp-2">
-                    {group.topic || 'Zadania i gry z zajęć'}
-                  </p>
-                </div>
-
-                {/* Bottom Row with explicit spacing between game count and open button */}
-                <div className="pt-3 border-t border-black/20 flex items-center justify-between gap-4 w-full text-xs font-black">
-                  <div className="flex items-center gap-1.5 text-[#FF4F81] shrink-0">
-                    <Gamepad2 className="w-4 h-4" />
-                    <span>{group.tasks.length} {getGameWord(group.tasks.length)}</span>
-                  </div>
-                </div>
+                Zamknij kafelki ▴
               </button>
-            );
-          })}
-        </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+              {groupedWeeks.map((group, gIdx) => {
+                const isSelected = selectedWeekKey === group.dateKey;
+                const isLatest = gIdx === 0;
+
+                return (
+                  <button
+                    key={group.dateKey}
+                    onClick={() => handleSelectModule(group.dateKey, true)}
+                    className={`p-4 rounded-2xl border-3 border-black text-left flex flex-col justify-between gap-4 transition-all cursor-pointer relative ${
+                      isSelected
+                        ? 'bg-[#FFD700] text-black shadow-[6px_6px_0px_black] ring-3 ring-black scale-[1.02]'
+                        : 'bg-yellow-50/70 hover:bg-yellow-100 text-black shadow-[3px_3px_0px_black] hover:translate-y-[-2px]'
+                    }`}
+                  >
+                    <div>
+                      <div className="flex items-center justify-between gap-2 mb-2 min-h-[22px]">
+                        {isLatest ? (
+                          <span className="bg-[#FF4F81] text-white text-[9px] font-black px-2 py-0.5 rounded-full uppercase border border-black">
+                            Najnowszy
+                          </span>
+                        ) : <span />}
+                        {isSelected && (
+                          <span className="bg-black text-yellow-300 text-[9px] font-black px-2 py-0.5 rounded-full uppercase">
+                            ✓ Wybrany
+                          </span>
+                        )}
+                      </div>
+
+                      <h3 className="text-sm sm:text-base font-black text-black leading-tight break-words">
+                        {group.displayDate}
+                      </h3>
+                      <p className="text-xs font-bold text-gray-800 mt-1 line-clamp-2">
+                        {group.topic || 'Zadania i gry z zajęć'}
+                      </p>
+                    </div>
+
+                    <div className="pt-3 border-t border-black/20 flex items-center justify-between gap-4 w-full text-xs font-black">
+                      <div className="flex items-center gap-1.5 text-[#FF4F81] shrink-0">
+                        <Gamepad2 className="w-4 h-4" />
+                        <span>{group.tasks.length} {getGameWord(group.tasks.length)}</span>
+                      </div>
+                      <span className="text-[11px] text-gray-700 font-black">
+                        {isSelected ? 'Gry aktywne ➔' : 'Wybierz ten zjazd ➔'}
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="flex justify-center pt-1">
+              <button
+                onClick={() => setIsModulesExpanded(false)}
+                className="bg-gray-100 hover:bg-gray-200 text-black border-2 border-black font-black px-4 py-1.5 rounded-xl text-xs uppercase flex items-center gap-1.5 shadow-[2px_2px_0px_black] cursor-pointer"
+              >
+                <ChevronUp className="w-3.5 h-3.5" />
+                <span>Zwiń listę kafelków</span>
+              </button>
+            </div>
+          </div>
+        )}
       </section>
 
       {/* KROK 2: GRY Z WYBRANEGO ZJAZDU */}

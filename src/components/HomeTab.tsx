@@ -127,7 +127,7 @@ export const HomeTab: React.FC<HomeTabProps> = ({ classEvents, announcements, is
             {[1, 2, 3].map((i) => (
               <div
                 key={`ann-skel-${i}`}
-                className="bg-white/80 p-4 rounded-2xl border-3 border-black shadow-[4px_4px_0px_black] animate-pulse space-y-2"
+                className="bg-white/80 p-4 rounded-2xl border-3 border-black shadow-[4px_4px_0px_black] animate-pulse space-y-2 min-w-0"
               >
                 <div className="h-4 w-24 bg-gray-300 rounded border border-black"></div>
                 <div className="h-5 w-3/4 bg-gray-300 rounded"></div>
@@ -146,15 +146,17 @@ export const HomeTab: React.FC<HomeTabProps> = ({ classEvents, announcements, is
             {announcements.map((ann) => (
               <div
                 key={ann.id}
-                className="bg-white text-black p-5 rounded-2xl border-3 border-black shadow-[4px_4px_0px_black] flex flex-col justify-between"
+                className="bg-white text-black p-4 sm:p-5 rounded-2xl border-3 border-black shadow-[4px_4px_0px_black] flex flex-col justify-between min-w-0 max-w-full overflow-hidden"
               >
-                <div>
+                <div className="min-w-0 max-w-full overflow-hidden">
                   <span className="text-[10px] font-black bg-yellow-300 text-black border border-black px-2 py-0.5 rounded-md uppercase inline-block mb-2 shadow-[1px_1px_0px_black]">
                     {ann.date}
                   </span>
-                  <h3 className="text-sm sm:text-base font-black text-black leading-snug break-words">{ann.title}</h3>
-                  <div className="text-xs text-gray-800 font-bold mt-2 leading-relaxed whitespace-pre-wrap break-words">
-                    <FormattedText text={ann.content} />
+                  <h3 className="text-sm sm:text-base font-black text-black leading-snug break-words [overflow-wrap:anywhere] [word-break:break-word] hyphens-auto">
+                    {ann.title}
+                  </h3>
+                  <div className="text-xs text-gray-800 font-bold mt-2 leading-relaxed break-words [overflow-wrap:anywhere] [word-break:break-word] min-w-0 max-w-full">
+                    <FormattedText text={ann.content} className="break-words [overflow-wrap:anywhere] [word-break:break-word]" />
                   </div>
                 </div>
               </div>
