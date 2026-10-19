@@ -26,7 +26,7 @@ export interface Announcement {
   icon?: string;
 }
 
-export type GameType = 'spelling' | 'secret_word' | 'syllables' | 'wordsearch';
+export type GameType = 'spelling' | 'secret_word' | 'syllables' | 'wordsearch' | 'pronoun';
 
 export interface WordSearchData {
   words: { pl: string; en: string }[];
@@ -71,6 +71,7 @@ export interface SpellingItem {
   word: string; // np. "SYRENKA"
   hint: string; // np. "Symbol Warszawy"
   emoji?: string; // np. "🧜‍♀️"
+  pronoun?: 'ten' | 'ta' | 'to'; // Opcjonalne nadpisanie zaimka
 }
 
 export interface DailyTask {

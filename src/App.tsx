@@ -326,7 +326,8 @@ export default function App() {
   };
 
   // Compute next class meeting date for top header
-  const todayIso = new Date().toISOString().split('T')[0];
+  const now = new Date();
+  const todayIso = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   const sortedClassEvents = [...classEvents].sort((a, b) => a.isoDate.localeCompare(b.isoDate));
   const upcomingEvent = sortedClassEvents.find((e) => e.isoDate >= todayIso && !e.isHoliday) 
     || sortedClassEvents.find((e) => e.status === 'next') 

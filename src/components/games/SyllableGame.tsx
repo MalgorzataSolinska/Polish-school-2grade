@@ -134,7 +134,7 @@ export const SyllableGame: React.FC<SyllableGameProps> = ({ items, onComplete, o
           Klikaj sylaby we właściwej kolejności, aby ułożyć słowo:
         </span>
 
-        <div className="flex flex-wrap justify-center items-center gap-2 min-h-[60px] bg-white p-3 rounded-2xl border-3 border-black shadow-[3px_3px_0px_black] max-w-md mx-auto">
+        <div className="flex flex-wrap justify-center items-center gap-2 min-h-[60px] bg-white p-3 rounded-2xl border-3 border-black shadow-[3px_3px_0px_black] max-w-full w-full mx-auto">
           {targetSyllables.map((_, idx) => (
             <div
               key={idx}

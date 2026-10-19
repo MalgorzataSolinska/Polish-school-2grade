@@ -157,7 +157,7 @@ export const SpellingGame: React.FC<SpellingGameProps> = ({ items, onComplete, o
         <span className="text-xs font-black uppercase text-black block">
           Klikaj litery we właściwej kolejności:
         </span>
-        <div className="flex flex-wrap justify-center items-center gap-2 sm:gap-3 min-h-[60px] sm:min-h-[80px] bg-white p-3 rounded-2xl border-3 border-black shadow-[3px_3px_0px_black] max-w-xl mx-auto w-full">
+        <div className="flex flex-wrap justify-center items-center gap-2 sm:gap-3 min-h-[60px] sm:min-h-[80px] bg-white p-3 rounded-2xl border-3 border-black shadow-[3px_3px_0px_black] max-w-full w-full mx-auto w-full">
           {builtLetters.length === 0 ? (
             <span className="text-xs sm:text-sm font-black text-gray-400 italic uppercase text-center px-2">
               Słowo
@@ -167,7 +167,7 @@ export const SpellingGame: React.FC<SpellingGameProps> = ({ items, onComplete, o
             <button
               key={lObj.id}
               onClick={() => handleRemoveLetter(lObj)}
-              className="w-9 h-11 sm:w-14 sm:h-16 bg-[#FFD700] text-black border-2 sm:border-3 border-black rounded-xl sm:rounded-2xl flex items-center justify-center text-lg sm:text-2xl font-black shadow-[2px_2px_0px_black] sm:shadow-[3px_3px_0px_black] hover:scale-105 active:scale-95 cursor-pointer transition shrink-0 whitespace-nowrap select-none"
+              className="w-7 h-9 sm:w-12 sm:h-14 bg-[#FFD700] text-black border-2 sm:border-3 border-black rounded-xl sm:rounded-2xl flex items-center justify-center text-base sm:text-2xl font-black shadow-[2px_2px_0px_black] sm:shadow-[3px_3px_0px_black] hover:scale-105 active:scale-95 cursor-pointer transition shrink-0 whitespace-nowrap select-none"
               title="Kliknij, aby usunąć literę"
             >
               {lObj.letter}
@@ -184,12 +184,12 @@ export const SpellingGame: React.FC<SpellingGameProps> = ({ items, onComplete, o
         </div>
       )}
       
-        <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 my-4">
+        <div className="flex flex-wrap items-center justify-center gap-1 sm:gap-2 my-4">
           {availableLetters.map((lObj) => (
             <button
               key={lObj.id}
               onClick={() => handleLetterTap(lObj)}
-              className="w-9 h-10 sm:w-11 sm:h-12 bg-white text-black border-2 border-black rounded-xl font-black text-xs sm:text-sm cursor-pointer transition active:scale-95 shadow-[2px_2px_0px_black] hover:bg-yellow-200 shrink-0 whitespace-nowrap select-none flex items-center justify-center"
+              className="w-8 h-9 sm:w-11 sm:h-12 bg-white text-black border-2 border-black rounded-xl font-black text-xs sm:text-sm cursor-pointer transition active:scale-95 shadow-[2px_2px_0px_black] hover:bg-yellow-200 shrink-0 whitespace-nowrap select-none flex items-center justify-center"
             >
               {lObj.letter}
             </button>

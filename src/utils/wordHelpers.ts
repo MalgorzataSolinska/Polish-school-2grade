@@ -106,6 +106,13 @@ export const POLISH_WORD_EMOJI_MAP: Record<string, string> = {
   'RYBA': '🐟',
   'ZABAWA': '🎮',
   'GRA': '🎮',
+  'PARASOL': '☂️',
+  'KURTKA': '🧥',
+  'OKNO': '🪟',
+  'PLECAK': '🎒',
+  'BIURKO': '🪑',
+  'KRZESŁO': '🪑',
+  'KRZESLO': '🪑',
 };
 
 export function getEmojiForWord(rawWord: string): string {
@@ -118,6 +125,9 @@ export function getEmojiForWord(rawWord: string): string {
   }
 
   // 2. Partial string match
+  if (word.includes('PARASOL')) return '☂️';
+  if (word.includes('KURTK')) return '🧥';
+  if (word.includes('OKN')) return '🪟';
   if (word.includes('SYREN')) return '🧜‍♀️';
   if (word.includes('WARSZ')) return '🏰';
   if (word.includes('KRAK') || word.includes('WAWEL')) return '🐉';

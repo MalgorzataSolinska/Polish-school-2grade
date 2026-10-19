@@ -109,6 +109,28 @@ export const INITIAL_DAILY_TASKS: DailyTask[] = [
       gridSize: 8,
     },
   },
+  {
+    id: 'dt-2208-5',
+    date: 'Sobota, 22 Sierpnia 2026',
+    eventDateStr: 'Sobota, 22 Sierpnia 2026',
+    eventIsoDate: '2026-08-22',
+    topic: 'Rozpoczęcie Roku Szkolnego i Pierwsze Słówka',
+    title: 'Ten, Ta czy To? (Zaimki Wskazujące)',
+    description: 'Dopasuj odpowiedni zaimek: TEN, TA lub TO do każdego słówka (np. ten parasol, ta kurtka, to okno)!',
+    type: 'pronoun',
+    starsReward: 15,
+    spelling: [
+      { id: 'pro-22-1', word: 'PARASOL', hint: 'Chroni przed deszczem', emoji: '☂️' },
+      { id: 'pro-22-2', word: 'KURTKA', hint: 'Ciepłe ubranie na jesień i zimę', emoji: '🧥' },
+      { id: 'pro-22-3', word: 'OKNO', hint: 'Przez nie wpada światło do klasy', emoji: '🪟' },
+      { id: 'pro-22-4', word: 'ORZEŁ', hint: 'Biały ptak w godle Polski', emoji: '🦅' },
+      { id: 'pro-22-5', word: 'FLAGA', hint: 'Biało-czerwona flaga Polski', emoji: '🇵🇱' },
+      { id: 'pro-22-6', word: 'GODŁO', hint: 'Symbol narodowy Polski', emoji: '🛡️' },
+      { id: 'pro-22-7', word: 'SYRENKA', hint: 'Warszawska Syrenka', emoji: '🧜‍♀️' },
+      { id: 'pro-22-8', word: 'ZAMEK', hint: 'Zamek Królewski w Warszawie', emoji: '🏰' },
+      { id: 'pro-22-9', word: 'WISŁA', hint: 'Najdłuższa polska rzeka', emoji: '🌊' },
+    ],
+  },
 
   // --- ZJAZD 2: SOBOTA, 29 SIERPNIA 2026 ---
   {
@@ -189,6 +211,27 @@ export const INITIAL_DAILY_TASKS: DailyTask[] = [
       ],
       gridSize: 8,
     },
+  },
+  {
+    id: 'dt-2908-5',
+    date: 'Sobota, 29 Sierpnia 2026',
+    eventDateStr: 'Sobota, 29 Sierpnia 2026',
+    eventIsoDate: '2026-08-29',
+    topic: 'Alfabet i Wspomnienia z Wakacji: Pisanie i wypowiedzi ustne',
+    title: 'Ten, Ta czy To? (Zaimki Wskazujące)',
+    description: 'Wybierz zaimek TEN, TA lub TO do wakacyjnych i szkolnych słówek!',
+    type: 'pronoun',
+    starsReward: 15,
+    spelling: [
+      { id: 'pro-29-1', word: 'SŁOŃCE', hint: 'Świeci mocno na letnim niebie', emoji: '☀️' },
+      { id: 'pro-29-2', word: 'MORZE', hint: 'Bałtyk pełen fal i muszelek', emoji: '🌊' },
+      { id: 'pro-29-3', word: 'SZKOŁA', hint: 'Nasza polska szkoła', emoji: '🏫' },
+      { id: 'pro-29-4', word: 'ZESZYT', hint: 'Piszemy w nim starannie', emoji: '📓' },
+      { id: 'pro-29-5', word: 'PIÓRNIK', hint: 'Mieszkają w nim przybory', emoji: '✏️' },
+      { id: 'pro-29-6', word: 'GÓRA', hint: 'Wysoki szczyt w Tatrach', emoji: '⛰️' },
+      { id: 'pro-29-7', word: 'ALFABET', hint: 'Wszystkie polskie litery', emoji: '🔤' },
+      { id: 'pro-29-8', word: 'PLECAK', hint: 'Nosisz w nim książki do szkoły', emoji: '🎒' },
+    ],
   },
 ];
 

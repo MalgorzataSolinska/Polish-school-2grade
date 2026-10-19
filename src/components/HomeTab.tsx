@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ClassEvent, Announcement, SchoolDatabaseState } from '../types';
+import { ClassEvent, Announcement } from '../types';
 import { Clock, Megaphone, Phone, Mail, FileText, ChevronRight, Download } from 'lucide-react';
 import { FormattedText } from './FormattedText';
 
@@ -20,8 +20,12 @@ export const HomeTab: React.FC<HomeTabProps> = ({ classEvents, announcements, is
 
     // If none marked as 'next', find the earliest event in the future
     if (!upcoming) {
-      const today = new Date().toISOString().split('T')[0];
-      const futureEvents = classEvents.filter(e => e.isoDate >= today);
+      const now = new Date();
+      const y = now.getFullYear();
+      const m = String(now.getMonth() + 1).padStart(2, '0');
+      const d = String(now.getDate()).padStart(2, '0');
+      const todayIso = `${y}-${m}-${d}`;
+      const futureEvents = classEvents.filter(e => e.isoDate >= todayIso);
       if (futureEvents.length > 0) {
         // sort by date ascending
         futureEvents.sort((a, b) => a.isoDate.localeCompare(b.isoDate));
@@ -35,23 +39,26 @@ export const HomeTab: React.FC<HomeTabProps> = ({ classEvents, announcements, is
     setNextClass(upcoming || null);
   }, [classEvents]);
 
-  // Days remaining calculation
+  // Days remaining calculation (strictly using local calendar dates to avoid timezone offset shifts)
   let daysRemainingText = '';
-  if (nextClass) {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const target = new Date(nextClass.isoDate);
-    target.setHours(0, 0, 0, 0);
-
-    const diffTime = target.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  if (nextClass && nextClass.isoDate) {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     
-    if (diffDays === 0) {
-      daysRemainingText = 'To już dzisiaj! 🎉';
-    } else if (diffDays === 1) {
-      daysRemainingText = 'Już jutro! ⏳';
-    } else if (diffDays > 1) {
-      daysRemainingText = `Zjazd za ${diffDays} dni 🗓️`;
+    // Parse target isoDate (YYYY-MM-DD) into local midnight date
+    const parts = nextClass.isoDate.split('T')[0].split('-').map(Number);
+    if (parts.length >= 3 && !isNaN(parts[0]) && !isNaN(parts[1]) && !isNaN(parts[2])) {
+      const target = new Date(parts[0], parts[1] - 1, parts[2]);
+      const diffTime = target.getTime() - today.getTime();
+      const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+      
+      if (diffDays === 0) {
+        daysRemainingText = 'To już dzisiaj! 🎉';
+      } else if (diffDays === 1) {
+        daysRemainingText = 'Już jutro! ⏳';
+      } else if (diffDays > 1) {
+        daysRemainingText = `Zjazd za ${diffDays} dni 🗓️`;
+      }
     }
   }
 

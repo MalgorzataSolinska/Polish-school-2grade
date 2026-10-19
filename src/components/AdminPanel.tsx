@@ -365,11 +365,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       starsReward: 15,
     };
 
-    if (taskType === 'spelling' || taskType === 'secret_word' || taskType === 'syllables') {
+    if (taskType === 'spelling' || taskType === 'secret_word' || taskType === 'syllables' || taskType === 'pronoun') {
       const spellingItems: SpellingItem[] = rawWords.map((w, idx) => ({
         id: `sp-${idx}-${Date.now()}`,
         word: w,
-        hint: 'Ułóż polskie słowo z kafelków',
+        hint: taskType === 'pronoun' ? 'Wybierz zaimek: TEN, TA czy TO?' : 'Ułóż polskie słowo z kafelków',
         emoji: getEmojiForWord(w),
       }));
       newTask.spelling = spellingItems;
@@ -407,11 +407,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
     tasksForSat.forEach((task) => {
       const updatedTask: DailyTask = { ...task };
-      if (task.type === 'spelling' || task.type === 'secret_word' || task.type === 'syllables') {
+      if (task.type === 'spelling' || task.type === 'secret_word' || task.type === 'syllables' || task.type === 'pronoun') {
         updatedTask.spelling = rawWords.map((w, idx) => ({
           id: `sp-${idx}-${Date.now()}`,
           word: w,
-          hint: 'Ułóż polskie słowo z kafelków',
+          hint: task.type === 'pronoun' ? 'Wybierz zaimek: TEN, TA czy TO?' : 'Ułóż polskie słowo z kafelków',
           emoji: getEmojiForWord(w),
         }));
       } else if (task.type === 'wordsearch') {
@@ -1015,6 +1015,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                             <option value="secret_word">🎯 Tajne Słowo (Zgadywanka / Koło Fortuny)</option>
                             <option value="syllables">🧩 Układanka Sylabowa (Łączenie sylab)</option>
                             <option value="wordsearch">🔍 Wykreślanka Słów</option>
+                            <option value="pronoun">Ten, Ta czy To? (Zaimki Wskazujące)</option>
                           </select>
                         </div>
                       </div>
@@ -1239,7 +1240,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                                             {task.type === 'spelling' ? '🔤 Układanie Liter' :
                                              task.type === 'secret_word' ? '🎯 Tajne Słowo' :
                                              task.type === 'syllables' ? '🧩 Sylaby' :
-                                             task.type === 'wordsearch' ? '🔍 Wykreślanka' : task.type}
+                                             task.type === 'wordsearch' ? '🔍 Wykreślanka' : task.type === 'pronoun' ? 'Ten, Ta, To' : task.type}
                                           </span>
                                           {isCurrentEditing && (
                                             <span className="bg-amber-400 text-black text-[9px] px-1.5 py-0.2 rounded font-black uppercase">

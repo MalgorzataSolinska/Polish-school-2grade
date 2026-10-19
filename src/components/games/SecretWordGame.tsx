@@ -174,13 +174,13 @@ export const SecretWordGame: React.FC<SecretWordGameProps> = ({ items, onComplet
       </div>
 
       {/* Secret Word Boxes */}
-      <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2.5 my-4 sm:my-6">
+      <div className="flex flex-wrap items-center justify-center gap-1 sm:gap-2 my-4 sm:my-6">
         {targetWord.split('').map((char, idx) => {
           const isRevealed = guessedLetters.includes(char) || isGameOver;
           return (
             <div
               key={idx}
-              className={`w-9 h-11 sm:w-14 sm:h-16 rounded-xl sm:rounded-2xl border-2 sm:border-3 border-black flex items-center justify-center text-lg sm:text-2xl font-black shadow-[2px_2px_0px_black] sm:shadow-[3px_3px_0px_black] transition-all shrink-0 whitespace-nowrap select-none ${
+              className={`w-7 h-9 sm:w-12 sm:h-14 rounded-xl sm:rounded-2xl border-2 sm:border-3 border-black flex items-center justify-center text-base sm:text-2xl font-black shadow-[2px_2px_0px_black] sm:shadow-[3px_3px_0px_black] transition-all shrink-0 whitespace-nowrap select-none ${
                 isRevealed
                   ? 'bg-[#FFD700] text-black scale-105'
                   : 'bg-white text-gray-300'
@@ -247,7 +247,7 @@ export const SecretWordGame: React.FC<SecretWordGameProps> = ({ items, onComplet
         <p className="text-[11px] font-black uppercase text-black text-center">
           Dotknij literę, aby sprawdzić, czy jest w słowie:
         </p>
-        <div className="flex flex-wrap justify-center gap-1.5 max-w-xl mx-auto">
+        <div className="flex flex-wrap justify-center gap-1.5 max-w-full w-full mx-auto">
           {POLISH_ALPHABET.map((letter) => {
             const isUsedCorrect = guessedLetters.includes(letter);
             const isUsedWrong = wrongGuesses.includes(letter);
@@ -257,7 +257,7 @@ export const SecretWordGame: React.FC<SecretWordGameProps> = ({ items, onComplet
                 key={letter}
                 onClick={() => handleGuess(letter)}
                 disabled={isUsedCorrect || isUsedWrong || isWordGuessed || isGameOver}
-                className={`w-9 h-10 sm:w-11 sm:h-12 rounded-xl border-2 border-black font-black text-xs sm:text-sm cursor-pointer transition active:scale-95 shadow-[2px_2px_0px_black] ${
+                className={`w-8 h-9 sm:w-11 sm:h-12 rounded-xl border-2 border-black font-black text-xs sm:text-sm cursor-pointer transition active:scale-95 shadow-[2px_2px_0px_black] ${
                   isUsedCorrect
                     ? 'bg-emerald-400 text-black border-emerald-950 opacity-60 shadow-none'
                     : isUsedWrong
