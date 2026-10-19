@@ -42,6 +42,26 @@ const getGameWord = (count: number) => {
   return 'gier';
 };
 
+const getSaturdayCountDeclension = (count: number) => {
+  if (count === 1) return 'Zjazd Sobotni';
+  const lastDigit = count % 10;
+  const lastTwo = count % 100;
+  if (lastDigit >= 2 && lastDigit <= 4 && (lastTwo < 12 || lastTwo > 14)) {
+    return 'Zjazdy Sobotnie';
+  }
+  return 'Zjazdów Sobotnich';
+};
+
+const getAvailableZjazdyLabel = (count: number) => {
+  if (count === 1) return '1 dostępny zjazd';
+  const lastDigit = count % 10;
+  const lastTwo = count % 100;
+  if (lastDigit >= 2 && lastDigit <= 4 && (lastTwo < 12 || lastTwo > 14)) {
+    return `${count} dostępne zjazdy`;
+  }
+  return `${count} dostępnych zjazdów`;
+};
+
 export const GamesTab: React.FC<GamesTabProps> = ({
   dailyTask,
   allDailyTasks,
@@ -215,7 +235,7 @@ export const GamesTab: React.FC<GamesTabProps> = ({
               {groupedWeeks.length}
             </span>
             <span className="text-[11px] font-black block uppercase tracking-wider mt-1">
-              Zjazdy Sobotnie
+              {getSaturdayCountDeclension(groupedWeeks.length)}
             </span>
           </div>
         </div>
@@ -233,7 +253,7 @@ export const GamesTab: React.FC<GamesTabProps> = ({
           </div>
 
           <span className="bg-yellow-200 text-black border-2 border-black px-3 py-1 rounded-xl text-xs font-black self-start sm:self-auto">
-            {groupedWeeks.length} dostępne zjazdy
+            {getAvailableZjazdyLabel(groupedWeeks.length)}
           </span>
         </div>
 
@@ -302,7 +322,7 @@ export const GamesTab: React.FC<GamesTabProps> = ({
                     {activeGroup.displayDate}
                   </span>
                   <span className="bg-[#4F81FF] text-white border-2 border-black text-[10px] font-black px-2 py-0.5 rounded-full uppercase shadow-[1px_1px_0px_black]">
-                    Zestaw {activeGroup.tasks.length} Gier
+                    Zestaw {activeGroup.tasks.length} {getGameWord(activeGroup.tasks.length)}
                   </span>
                 </div>
                 <h2 className="text-xl sm:text-2xl font-black text-black mt-1 uppercase tracking-tight break-words">

@@ -59,76 +59,31 @@ function sanitizeForFirestore<T>(obj: T): T {
   return JSON.parse(JSON.stringify(obj, (key, value) => (value === undefined ? null : value)));
 }
 
-const LOCAL_STORAGE_KEY = 'szkolka_cloud_data_cache_v4';
+export const LOCAL_STORAGE_KEY = 'szkolka_cloud_data_cache_v5';
 
 export function normalizeDailyTasks(tasks: DailyTask[]): DailyTask[] {
   if (!Array.isArray(tasks) || tasks.length === 0) {
     return INITIAL_DAILY_TASKS;
   }
 
-  const normalized: DailyTask[] = tasks.map((task) => {
-    let date = task.date || 'Sobota, 22 Sierpnia 2026';
-    let eventDateStr = task.eventDateStr || date;
-    let eventIsoDate = task.eventIsoDate;
-
-    if (!eventIsoDate || date.startsWith('Gra ') || date === 'Zadanie Pani Małgosi') {
-      if (
-        date.includes('22') ||
-        task.id.includes('22') ||
-        task.id === 'dt-1' ||
-        task.id === 'dt-2' ||
-        task.id === 'dt-3' ||
-        task.id === 'dt-4' ||
-        date.startsWith('Gra ')
-      ) {
-        date = 'Sobota, 22 Sierpnia 2026';
-        eventDateStr = 'Sobota, 22 Sierpnia 2026';
-        eventIsoDate = '2026-08-22';
-      } else if (date.includes('29') || task.id.includes('29')) {
-        date = 'Sobota, 29 Sierpnia 2026';
-        eventDateStr = 'Sobota, 29 Sierpnia 2026';
-        eventIsoDate = '2026-08-29';
-      }
-    }
+  // Preserve all user tasks exactly as modified or deleted, only filling missing date/topic fallbacks if absent
+  return tasks.map((task) => {
+    const date = task.date || task.eventDateStr || 'Sobota, 22 Sierpnia 2026';
+    const eventDateStr = task.eventDateStr || date;
+    const eventIsoDate = task.eventIsoDate || (date.includes('29') ? '2026-08-29' : '2026-08-22');
 
     return {
       ...task,
       date,
-      eventDateStr: eventDateStr || 'Sobota, 22 Sierpnia 2026',
-      eventIsoDate: eventIsoDate || (date.includes('29') ? '2026-08-29' : '2026-08-22'),
+      eventDateStr,
+      eventIsoDate,
       topic:
         task.topic ||
-        (date.includes('29')
+        (eventIsoDate === '2026-08-29'
           ? 'Alfabet i Wspomnienia z Wakacji: Pisanie i wypowiedzi ustne'
           : 'Rozpoczęcie Roku Szkolnego i Pierwsze Słówka'),
     };
   });
-
-  // Ensure 29.08 games exist if not yet added to Firestore
-  const has2908 = normalized.some((t) => t.eventIsoDate === '2026-08-29' || t.date.includes('29'));
-  if (!has2908) {
-    const tasks2908 = INITIAL_DAILY_TASKS.filter((t) => t.eventIsoDate === '2026-08-29');
-    normalized.push(...tasks2908);
-  }
-
-  // Ensure 'pronoun' (Ten, Ta, To) game is present for 22.08 and 29.08
-  const hasPronoun2208 = normalized.some(
-    (t) => (t.eventIsoDate === '2026-08-22' || t.date.includes('22')) && t.type === 'pronoun'
-  );
-  if (!hasPronoun2208) {
-    const pronounTask2208 = INITIAL_DAILY_TASKS.find((t) => t.id === 'dt-2208-5');
-    if (pronounTask2208) normalized.push(pronounTask2208);
-  }
-
-  const hasPronoun2908 = normalized.some(
-    (t) => (t.eventIsoDate === '2026-08-29' || t.date.includes('29')) && t.type === 'pronoun'
-  );
-  if (!hasPronoun2908) {
-    const pronounTask2908 = INITIAL_DAILY_TASKS.find((t) => t.id === 'dt-2908-5');
-    if (pronounTask2908) normalized.push(pronounTask2908);
-  }
-
-  return normalized;
 }
 
 /**

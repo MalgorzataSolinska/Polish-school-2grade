@@ -21,6 +21,7 @@ interface AdminPanelProps {
   allDailyTasks: DailyTask[];
   onAddDailyTask: (newTask: DailyTask) => void;
   onEditDailyTask?: (updatedTask: DailyTask) => void;
+  onBatchEditDailyTasks?: (updatedTasks: DailyTask[]) => void;
   onDeleteDailyTask: (id: string) => void;
   // Class Events (Calendar)
   classEvents: ClassEvent[];
@@ -61,6 +62,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   allDailyTasks,
   onAddDailyTask,
   onEditDailyTask,
+  onBatchEditDailyTasks,
   onDeleteDailyTask,
   classEvents,
   onAddClassEvent,
@@ -389,6 +391,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       setGameNotification(`🎉 Utworzono i opublikowano grę "${newTask.title}" dla zjazdu: ${newTask.eventDateStr || newTask.date}!`);
     }
     setTaskTitle('');
+    setTaskDescription('');
+    setTaskWordsInput('');
     playSuccessSound();
   };
 
@@ -405,7 +409,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
     if (tasksForSat.length === 0) return;
 
-    tasksForSat.forEach((task) => {
+    const updatedTasks: DailyTask[] = tasksForSat.map((task) => {
       const updatedTask: DailyTask = { ...task };
       if (task.type === 'spelling' || task.type === 'secret_word' || task.type === 'syllables' || task.type === 'pronoun') {
         updatedTask.spelling = rawWords.map((w, idx) => ({
@@ -420,10 +424,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           gridSize: 8,
         };
       }
-      if (onEditDailyTask) {
-        onEditDailyTask(updatedTask);
-      }
+      return updatedTask;
     });
+
+    if (onBatchEditDailyTasks) {
+      onBatchEditDailyTasks(updatedTasks);
+    } else {
+      updatedTasks.forEach((task) => {
+        if (onEditDailyTask) {
+          onEditDailyTask(task);
+        }
+      });
+    }
 
     setBatchEditSaturday(null);
     setBatchWordsInput('');

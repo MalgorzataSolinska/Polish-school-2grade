@@ -18,10 +18,9 @@ import {
 import {
   subscribeToSchoolData,
   saveSchoolData,
-  SchoolDatabaseState
+  SchoolDatabaseState,
+  LOCAL_STORAGE_KEY
 } from './firebase';
-
-const LOCAL_STORAGE_KEY = 'szkolka_cloud_data_cache_v3';
 
 function getInitialCachedState(): Partial<SchoolDatabaseState> {
   try {
@@ -218,6 +217,16 @@ export default function App() {
     setAllDailyTasks(updated);
     if (dailyTask?.id === updatedTask.id) {
       setDailyTask(updatedTask);
+    }
+    await saveSchoolData({ dailyTasks: updated });
+  };
+
+  const handleBatchEditDailyTasks = async (updatedTasks: DailyTask[]) => {
+    const updateMap = new Map(updatedTasks.map((t) => [t.id, t]));
+    const updated = allDailyTasks.map((t) => updateMap.get(t.id) || t);
+    setAllDailyTasks(updated);
+    if (dailyTask && updateMap.has(dailyTask.id)) {
+      setDailyTask(updateMap.get(dailyTask.id)!);
     }
     await saveSchoolData({ dailyTasks: updated });
   };
@@ -430,6 +439,7 @@ export default function App() {
         allDailyTasks={allDailyTasks}
         onAddDailyTask={handleAddDailyTask}
         onEditDailyTask={handleEditDailyTask}
+        onBatchEditDailyTasks={handleBatchEditDailyTasks}
         onDeleteDailyTask={handleDeleteDailyTask}
         classEvents={classEvents}
         onAddClassEvent={handleAddClassEvent}
