@@ -26,7 +26,7 @@ export interface Announcement {
   icon?: string;
 }
 
-export type GameType = 'spelling' | 'secret_word' | 'syllables' | 'wordsearch' | 'pronoun';
+export type GameType = 'spelling' | 'secret_word' | 'syllables' | 'wordsearch' | 'pronoun' | 'cases';
 
 export interface WordSearchData {
   words: { pl: string; en: string }[];

@@ -1,0 +1,1821 @@
+// Declension helper for Polish noun cases: Mianownik, Dopełniacz, Biernik
+// Specifically tailored for 2nd grade Polish school students (klasa 2)
+
+import { cleanWord } from './wordHelpers';
+
+export type PolishGrammarGender = 'fem' | 'masc_anim' | 'masc_inanim' | 'neut';
+
+export type DeclensionCaseType = 'mianownik' | 'dopelniacz' | 'biernik';
+
+export interface CaseSentenceData {
+  caseType: DeclensionCaseType;
+  caseName: string; // "Mianownik", "Dopełniacz", "Biernik"
+  question: string; // "Kto? Co?", "Kogo? Czego nie ma?", "Kogo? Co widzę?"
+  correctForm: string; // e.g. "pralka", "pralki", "pralkę"
+  sentencePrefix: string; // e.g. "Tu jest moja", "Nie ma mojej", "Widzę moją"
+  sentenceSuffix: string; // e.g. "."
+  fullSentence: string; // e.g. "Tu jest moja pralka."
+}
+
+export interface WordDeclension {
+  baseWord: string; // e.g. "PRALKA"
+  displayWord: string; // e.g. "Pralka"
+  gender: PolishGrammarGender;
+  genderLabel: string; // "rodzaj żeński", "rodzaj męski", "rodzaj nijaki"
+  mianownik: CaseSentenceData;
+  dopelniacz: CaseSentenceData;
+  biernik: CaseSentenceData;
+  options: string[]; // Shuffled list of correct forms + 1-2 plausible distractors
+}
+
+interface RawDeclensionEntry {
+  gender: PolishGrammarGender;
+  m: string; // Mianownik (form)
+  d: string; // Dopełniacz (form)
+  b: string; // Biernik (form)
+  distractors: string[]; // Additional forms (e.g. Narzędnik, Miejscownik)
+}
+
+// Curated dictionary for elementary Polish vocabulary with verified grammatical forms
+const KNOWN_DECLENSIONS: Record<string, RawDeclensionEntry> = {
+  // Słowo podane w poleceniu użytkownika
+  'TELEFON': {
+    gender: 'masc_inanim',
+    m: 'telefon',
+    d: 'telefonu',
+    b: 'telefon',
+    distractors: ['telefonem', 'telefonie'],
+  },
+  'PRALKA': {
+    gender: 'fem',
+    m: 'pralka',
+    d: 'pralki',
+    b: 'pralkę',
+    distractors: ['pralką', 'pralce'],
+  },
+
+  // Sprzęty AGD i elektronika (Dopełniacz na -a: telewizora, komputera, czajnika itp.)
+  'TELEWIZOR': {
+    gender: 'masc_inanim',
+    m: 'telewizor',
+    d: 'telewizora',
+    b: 'telewizor',
+    distractors: ['telewizorem', 'telewizorze'],
+  },
+  'KOMPUTER': {
+    gender: 'masc_inanim',
+    m: 'komputer',
+    d: 'komputera',
+    b: 'komputer',
+    distractors: ['komputerem', 'komputerze'],
+  },
+  'CZAJNIK': {
+    gender: 'masc_inanim',
+    m: 'czajnik',
+    d: 'czajnika',
+    b: 'czajnik',
+    distractors: ['czajnikiem', 'czajniku'],
+  },
+  'LAPTOP': {
+    gender: 'masc_inanim',
+    m: 'laptop',
+    d: 'laptopa',
+    b: 'laptop',
+    distractors: ['laptopem', 'laptopie'],
+  },
+  'SMARTFON': {
+    gender: 'masc_inanim',
+    m: 'smartfon',
+    d: 'smartfona',
+    b: 'smartfon',
+    distractors: ['smartfonem', 'smartfonie'],
+  },
+  'TABLET': {
+    gender: 'masc_inanim',
+    m: 'tablet',
+    d: 'tableta',
+    b: 'tablet',
+    distractors: ['tabletem', 'tablecie'],
+  },
+  'TOSTER': {
+    gender: 'masc_inanim',
+    m: 'toster',
+    d: 'tostera',
+    b: 'toster',
+    distractors: ['tosterem', 'tosterze'],
+  },
+  'MIKSER': {
+    gender: 'masc_inanim',
+    m: 'mikser',
+    d: 'miksera',
+    b: 'mikser',
+    distractors: ['mikserem', 'mikserze'],
+  },
+  'ODKURZACZ': {
+    gender: 'masc_inanim',
+    m: 'odkurzacz',
+    d: 'odkurzacza',
+    b: 'odkurzacz',
+    distractors: ['odkurzaczem', 'odkurzaczu'],
+  },
+
+  // Słówka z 22 sierpnia (rozpoczęcie roku)
+  'PARASOL': {
+    gender: 'masc_inanim',
+    m: 'parasol',
+    d: 'parasola',
+    b: 'parasol',
+    distractors: ['parasolu', 'parasolem'],
+  },
+  'KURTKA': {
+    gender: 'fem',
+    m: 'kurtka',
+    d: 'kurtki',
+    b: 'kurtkę',
+    distractors: ['kurtką', 'kurtce'],
+  },
+  'OKNO': {
+    gender: 'neut',
+    m: 'okno',
+    d: 'okna',
+    b: 'okno',
+    distractors: ['oknem', 'oknie'],
+  },
+  'ORZEŁ': {
+    gender: 'masc_anim',
+    m: 'orzeł',
+    d: 'orła',
+    b: 'orła',
+    distractors: ['orłem', 'orłowi'],
+  },
+  'ORZEL': {
+    gender: 'masc_anim',
+    m: 'orzeł',
+    d: 'orła',
+    b: 'orła',
+    distractors: ['orłem', 'orłowi'],
+  },
+  'FLAGA': {
+    gender: 'fem',
+    m: 'flaga',
+    d: 'flagi',
+    b: 'flagę',
+    distractors: ['flagą', 'fladze'],
+  },
+  'GODŁO': {
+    gender: 'neut',
+    m: 'godło',
+    d: 'godła',
+    b: 'godło',
+    distractors: ['godłem', 'godle'],
+  },
+  'GODLO': {
+    gender: 'neut',
+    m: 'godło',
+    d: 'godła',
+    b: 'godło',
+    distractors: ['godłem', 'godle'],
+  },
+  'SYRENKA': {
+    gender: 'fem',
+    m: 'syrenka',
+    d: 'syrenki',
+    b: 'syrenkę',
+    distractors: ['syrenką', 'syrence'],
+  },
+  'ZAMEK': {
+    gender: 'masc_inanim',
+    m: 'zamek',
+    d: 'zamku',
+    b: 'zamek',
+    distractors: ['zamkiem', 'zamkowi'],
+  },
+  'WISŁA': {
+    gender: 'fem',
+    m: 'Wisła',
+    d: 'Wisły',
+    b: 'Wisłę',
+    distractors: ['Wisłą', 'Wiśle'],
+  },
+  'WISLA': {
+    gender: 'fem',
+    m: 'Wisła',
+    d: 'Wisły',
+    b: 'Wisłę',
+    distractors: ['Wisłą', 'Wiśle'],
+  },
+  'WARSZAWA': {
+    gender: 'fem',
+    m: 'Warszawa',
+    d: 'Warszawy',
+    b: 'Warszawę',
+    distractors: ['Warszawą', 'Warszawie'],
+  },
+  'KRAKÓW': {
+    gender: 'masc_inanim',
+    m: 'Kraków',
+    d: 'Krakowa',
+    b: 'Kraków',
+    distractors: ['Krakowem', 'Krakowie'],
+  },
+  'KRAKOW': {
+    gender: 'masc_inanim',
+    m: 'Kraków',
+    d: 'Krakowa',
+    b: 'Kraków',
+    distractors: ['Krakowem', 'Krakowie'],
+  },
+  'GDAŃSK': {
+    gender: 'masc_inanim',
+    m: 'Gdańsk',
+    d: 'Gdańska',
+    b: 'Gdańsk',
+    distractors: ['Gdańskiem', 'Gdańsku'],
+  },
+  'GDANSK': {
+    gender: 'masc_inanim',
+    m: 'Gdańsk',
+    d: 'Gdańska',
+    b: 'Gdańsk',
+    distractors: ['Gdańskiem', 'Gdańsku'],
+  },
+
+  // Słówka z 29 sierpnia i szkolne
+  'SZKOŁA': {
+    gender: 'fem',
+    m: 'szkoła',
+    d: 'szkoły',
+    b: 'szkołę',
+    distractors: ['szkołą', 'szkole'],
+  },
+  'SZKOLA': {
+    gender: 'fem',
+    m: 'szkoła',
+    d: 'szkoły',
+    b: 'szkołę',
+    distractors: ['szkołą', 'szkole'],
+  },
+  'KSIĄŻKA': {
+    gender: 'fem',
+    m: 'książka',
+    d: 'książki',
+    b: 'książkę',
+    distractors: ['książką', 'książce'],
+  },
+  'KSIAZKA': {
+    gender: 'fem',
+    m: 'książka',
+    d: 'książki',
+    b: 'książkę',
+    distractors: ['książką', 'książce'],
+  },
+  'SŁOŃCE': {
+    gender: 'neut',
+    m: 'słońce',
+    d: 'słońca',
+    b: 'słońce',
+    distractors: ['słońcem', 'słońcu'],
+  },
+  'SLONCE': {
+    gender: 'neut',
+    m: 'słońce',
+    d: 'słońca',
+    b: 'słońce',
+    distractors: ['słońcem', 'słońcu'],
+  },
+  'MORZE': {
+    gender: 'neut',
+    m: 'morze',
+    d: 'morza',
+    b: 'morze',
+    distractors: ['morzem', 'morzu'],
+  },
+  'PIES': {
+    gender: 'masc_anim',
+    m: 'pies',
+    d: 'psa',
+    b: 'psa',
+    distractors: ['psem', 'psu'],
+  },
+  'KOT': {
+    gender: 'masc_anim',
+    m: 'kot',
+    d: 'kota',
+    b: 'kota',
+    distractors: ['kotem', 'kotu'],
+  },
+  'ZESZYT': {
+    gender: 'masc_inanim',
+    m: 'zeszyt',
+    d: 'zeszytu',
+    b: 'zeszyt',
+    distractors: ['zeszytem', 'zeszycie'],
+  },
+  'PIÓRNIK': {
+    gender: 'masc_inanim',
+    m: 'piórnik',
+    d: 'piórnika',
+    b: 'piórnik',
+    distractors: ['piórnikiem', 'piórniku'],
+  },
+  'PIORNIK': {
+    gender: 'masc_inanim',
+    m: 'piórnik',
+    d: 'piórnika',
+    b: 'piórnik',
+    distractors: ['piórnikiem', 'piórniku'],
+  },
+  'PLECAK': {
+    gender: 'masc_inanim',
+    m: 'plecak',
+    d: 'plecaka',
+    b: 'plecak',
+    distractors: ['plecakiem', 'plecaku'],
+  },
+  'JABŁKO': {
+    gender: 'neut',
+    m: 'jabłko',
+    d: 'jabłka',
+    b: 'jabłko',
+    distractors: ['jabłkiem', 'jabłku'],
+  },
+  'JABLKO': {
+    gender: 'neut',
+    m: 'jabłko',
+    d: 'jabłka',
+    b: 'jabłko',
+    distractors: ['jabłkiem', 'jabłku'],
+  },
+  'DOM': {
+    gender: 'masc_inanim',
+    m: 'dom',
+    d: 'domu',
+    b: 'dom',
+    distractors: ['domem', 'domowi'],
+  },
+  'SAMOCHÓD': {
+    gender: 'masc_inanim',
+    m: 'samochód',
+    d: 'samochodu',
+    b: 'samochód',
+    distractors: ['samochodem', 'samochodzie'],
+  },
+  'SAMOCHOD': {
+    gender: 'masc_inanim',
+    m: 'samochód',
+    d: 'samochodu',
+    b: 'samochód',
+    distractors: ['samochodem', 'samochodzie'],
+  },
+  'ROWER': {
+    gender: 'masc_inanim',
+    m: 'rower',
+    d: 'roweru',
+    b: 'rower',
+    distractors: ['rowerem', 'rowerze'],
+  },
+  'DRZEWO': {
+    gender: 'neut',
+    m: 'drzewo',
+    d: 'drzewa',
+    b: 'drzewo',
+    distractors: ['drzewem', 'drzewie'],
+  },
+  'KWIAT': {
+    gender: 'masc_inanim',
+    m: 'kwiat',
+    d: 'kwiatu',
+    b: 'kwiat',
+    distractors: ['kwiatem', 'kwiecie'],
+  },
+  'CZAPKA': {
+    gender: 'fem',
+    m: 'czapka',
+    d: 'czapki',
+    b: 'czapkę',
+    distractors: ['czapką', 'czapce'],
+  },
+  'SZALIK': {
+    gender: 'masc_inanim',
+    m: 'szalik',
+    d: 'szalika',
+    b: 'szalik',
+    distractors: ['szalikiem', 'szaliku'],
+  },
+  'BLUZA': {
+    gender: 'fem',
+    m: 'bluza',
+    d: 'bluzy',
+    b: 'bluzę',
+    distractors: ['bluzą', 'bluzie'],
+  },
+  'OŁÓWEK': {
+    gender: 'masc_inanim',
+    m: 'ołówek',
+    d: 'ołówka',
+    b: 'ołówek',
+    distractors: ['ołówkiem', 'ołówku'],
+  },
+  'OLOWEK': {
+    gender: 'masc_inanim',
+    m: 'ołówek',
+    d: 'ołówka',
+    b: 'ołówek',
+    distractors: ['ołówkiem', 'ołówku'],
+  },
+  'DŁUGOPIS': {
+    gender: 'masc_inanim',
+    m: 'długopis',
+    d: 'długopisu',
+    b: 'długopis',
+    distractors: ['długopisem', 'długopisie'],
+  },
+  'DLUGOPIS': {
+    gender: 'masc_inanim',
+    m: 'długopis',
+    d: 'długopisu',
+    b: 'długopis',
+    distractors: ['długopisem', 'długopisie'],
+  },
+  'GUMKA': {
+    gender: 'fem',
+    m: 'gumka',
+    d: 'gumki',
+    b: 'gumkę',
+    distractors: ['gumką', 'gumce'],
+  },
+  'LINIJKA': {
+    gender: 'fem',
+    m: 'linijka',
+    d: 'linijki',
+    b: 'linijkę',
+    distractors: ['linijką', 'linijce'],
+  },
+  'SMOK': {
+    gender: 'masc_anim',
+    m: 'smok',
+    d: 'smoka',
+    b: 'smoka',
+    distractors: ['smokiem', 'smoku'],
+  },
+  'PTAK': {
+    gender: 'masc_anim',
+    m: 'ptak',
+    d: 'ptaka',
+    b: 'ptaka',
+    distractors: ['ptakiem', 'ptaku'],
+  },
+  'KRZESŁO': {
+    gender: 'neut',
+    m: 'krzesło',
+    d: 'krzesła',
+    b: 'krzesło',
+    distractors: ['krzesłem', 'krześle'],
+  },
+  'KRZESLO': {
+    gender: 'neut',
+    m: 'krzesło',
+    d: 'krzesła',
+    b: 'krzesło',
+    distractors: ['krzesłem', 'krześle'],
+  },
+  'BIURKO': {
+    gender: 'neut',
+    m: 'biurko',
+    d: 'biurka',
+    b: 'biurko',
+    distractors: ['biurkiem', 'biurku'],
+  },
+  'PODRĘCZNIK': {
+    gender: 'masc_inanim',
+    m: 'podręcznik',
+    d: 'podręcznika',
+    b: 'podręcznik',
+    distractors: ['podręcznikiem', 'podręczniku'],
+  },
+  'PODRECZNIK': {
+    gender: 'masc_inanim',
+    m: 'podręcznik',
+    d: 'podręcznika',
+    b: 'podręcznik',
+    distractors: ['podręcznikiem', 'podręczniku'],
+  },
+  'ALFABET': {
+    gender: 'masc_inanim',
+    m: 'alfabet',
+    d: 'alfabetu',
+    b: 'alfabet',
+    distractors: ['alfabetem', 'alfabecie'],
+  },
+  'SOBOTA': {
+    gender: 'fem',
+    m: 'sobota',
+    d: 'soboty',
+    b: 'sobotę',
+    distractors: ['sobotą', 'sobocie'],
+  },
+};
+
+/**
+ * Returns sentence prefixes based on Polish grammatical gender:
+ * - Żeński: "Tu jest moja ...", "Nie ma mojej ...", "Widzę moją ..."
+ * - Męski nieożywiony: "Tu jest mój ...", "Nie ma mojego ...", "Widzę mój ..."
+ * - Męski ożywiony: "Tu jest mój ...", "Nie ma mojego ...", "Widzę mojego ..."
+ * - Nijaki: "Tu jest moje ...", "Nie ma mojego ...", "Widzę moje ..."
+ */
+function getSentencePrefixes(gender: PolishGrammarGender): {
+  mianownikPrefix: string;
+  dopelniaczPrefix: string;
+  biernikPrefix: string;
+} {
+  switch (gender) {
+    case 'fem':
+      return {
+        mianownikPrefix: 'Tu jest moja',
+        dopelniaczPrefix: 'Nie ma mojej',
+        biernikPrefix: 'Widzę moją',
+      };
+    case 'masc_inanim':
+      return {
+        mianownikPrefix: 'Tu jest mój',
+        dopelniaczPrefix: 'Nie ma mojego',
+        biernikPrefix: 'Widzę mój',
+      };
+    case 'masc_anim':
+      return {
+        mianownikPrefix: 'Tu jest mój',
+        dopelniaczPrefix: 'Nie ma mojego',
+        biernikPrefix: 'Widzę mojego',
+      };
+    case 'neut':
+      return {
+        mianownikPrefix: 'Tu jest moje',
+        dopelniaczPrefix: 'Nie ma mojego',
+        biernikPrefix: 'Widzę moje',
+      };
+  }
+}
+
+function getGenderLabel(gender: PolishGrammarGender): string {
+  switch (gender) {
+    case 'fem':
+      return 'rodzaj żeński (ta)';
+    case 'masc_anim':
+      return 'rodzaj męski żywotny (ten)';
+    case 'masc_inanim':
+      return 'rodzaj męski nieżywotny (ten)';
+    case 'neut':
+      return 'rodzaj nijaki (to)';
+  }
+}
+
+/**
+ * Algorithmic generator for any custom Polish noun added by teacher
+ */
+function generateAlgorithmicDeclension(rawWord: string): RawDeclensionEntry {
+  const clean = cleanWord(rawWord).toLowerCase();
+  const lastChar = clean.slice(-1);
+
+  // Feminine in -a (e.g. pralka, kurtka, flaga)
+  if (lastChar === 'a') {
+    const stem = clean.slice(0, -1);
+    const stemLast = stem.slice(-1);
+    const dEnding = stemLast === 'k' || stemLast === 'g' || stemLast === 'l' ? 'i' : 'y';
+    return {
+      gender: 'fem',
+      m: clean,
+      d: stem + dEnding,
+      b: stem + 'ę',
+      distractors: [stem + 'ą', stem + 'e'],
+    };
+  }
+
+  // Neuter in -o or -e
+  if (lastChar === 'o' || lastChar === 'e' || lastChar === 'ę') {
+    const stem = clean.slice(0, -1);
+    return {
+      gender: 'neut',
+      m: clean,
+      d: stem + 'a',
+      b: clean,
+      distractors: [stem + 'em', stem + 'u'],
+    };
+  }
+
+  // Masculine words
+  const isLikelyAnim = /^(pies|kot|orzel|orzeł|ptak|smok|wilk|kon|koń|brat|tata|syn|chlopiec|chłopiec|krol|król|rycerz|pan|lekarz|nauczyciel|kolega|uczen|uczeń|zolnierz|żołnierz)/i.test(clean);
+  const gender: PolishGrammarGender = isLikelyAnim ? 'masc_anim' : 'masc_inanim';
+
+  // Words that take -a in Dopełniacz:
+  // 1. All animate masculine nouns (pies -> psa, kot -> kota, ptak -> ptaka)
+  // 2. Diminutives, tools, and everyday items in -ik, -yk, -ak (czajnik -> czajnika, piórnik -> piórnika, stolik -> stolika, głośnik -> głośnika, plecak -> plecaka)
+  // 3. Technical devices, appliances, instruments in -or, -er, -ar (telewizor -> telewizora, komputer -> komputera, toster -> tostera, mikser -> miksera, kalkulator -> kalkulatora, projektor -> projektora, monitor -> monitora, traktor -> traktora, wentylator -> wentylatora)
+  // 4. Other modern appliances, devices, utensils and concrete objects (laptop -> laptopa, smartfon -> smartfona, tablet -> tableta, pilot -> pilota, odkurzacz -> odkurzacza, talerz -> talerza, nóż -> noża, widelec -> widelca, garnek -> garnka, kubek -> kubka, ołówek -> ołówka)
+  const takesAInDopelniacz =
+    isLikelyAnim ||
+    /(ik|yk|ak|or|er|ar|arz|acz|fon|top|let|ot|ek)$/i.test(clean) ||
+    /^(telewizor|komputer|czajnik|laptop|smartfon|tablet|pilot|toster|mikser|blender|odkurzacz|zegar|zegarek|talerz|parasol|dolar|funt|zloty|złoty|klucz|noż|nóż|widelec|garnek|dzbanek)/i.test(clean);
+
+  let dForm: string;
+  if (takesAInDopelniacz) {
+    if (clean.endsWith('ek') && clean.length > 3) {
+      const baseStem = clean.slice(0, -2);
+      dForm = baseStem + 'ka';
+    } else {
+      dForm = clean + 'a';
+    }
+  } else {
+    dForm = clean + 'u';
+  }
+
+  // Biernik: for animate masculine nouns = Dopełniacz (-a), for inanimate = Mianownik (same as clean)
+  const bForm = isLikelyAnim ? dForm : clean;
+
+  const distractors = [clean + 'em'];
+  if (isLikelyAnim) {
+    distractors.push(clean + 'owi');
+  } else {
+    // For inanimate masculine, plausible distractors for 2nd grade: Miejscownik (np. w telewizorze, na biurku)
+    if (clean.endsWith('or') || clean.endsWith('er')) {
+      distractors.push(clean.slice(0, -1) + 'ze');
+    } else {
+      distractors.push(clean + 'u');
+    }
+  }
+
+  return {
+    gender,
+    m: clean,
+    d: dForm,
+    b: bForm,
+    distractors,
+  };
+}
+
+/**
+ * Fisher-Yates array shuffle helper
+ */
+function shuffle<T>(arr: T[]): T[] {
+  const result = [...arr];
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+}
+
+/**
+ * Primary function to build complete declension data for a word.
+ */
+export function getDeclensionForWord(rawWord: string): WordDeclension {
+  const clean = cleanWord(rawWord);
+  const upper = clean.toUpperCase();
+
+  const entry: RawDeclensionEntry = KNOWN_DECLENSIONS[upper] || generateAlgorithmicDeclension(rawWord);
+
+  const prefixes = getSentencePrefixes(entry.gender);
+  const genderLabel = getGenderLabel(entry.gender);
+
+  const mianownik: CaseSentenceData = {
+    caseType: 'mianownik',
+    caseName: 'Mianownik',
+    question: 'Kto? Co?',
+    correctForm: entry.m,
+    sentencePrefix: prefixes.mianownikPrefix,
+    sentenceSuffix: '.',
+    fullSentence: `${prefixes.mianownikPrefix} ${entry.m}.`,
+  };
+
+  const dopelniacz: CaseSentenceData = {
+    caseType: 'dopelniacz',
+    caseName: 'Dopełniacz',
+    question: 'Kogo? Czego nie ma?',
+    correctForm: entry.d,
+    sentencePrefix: prefixes.dopelniaczPrefix,
+    sentenceSuffix: '.',
+    fullSentence: `${prefixes.dopelniaczPrefix} ${entry.d}.`,
+  };
+
+  const biernik: CaseSentenceData = {
+    caseType: 'biernik',
+    caseName: 'Biernik',
+    question: 'Kogo? Co widzę?',
+    correctForm: entry.b,
+    sentencePrefix: prefixes.biernikPrefix,
+    sentenceSuffix: '.',
+    fullSentence: `${prefixes.biernikPrefix} ${entry.b}.`,
+  };
+
+  // Collect unique options (correct answers + distractors)
+  const optionsSet = new Set<string>();
+  optionsSet.add(entry.m);
+  optionsSet.add(entry.d);
+  optionsSet.add(entry.b);
+
+  if (entry.distractors && entry.distractors.length > 0) {
+    entry.distractors.forEach((dist) => optionsSet.add(dist));
+  }
+
+  // Capitalize first letter of display word nicely
+  const displayWord = clean.charAt(0).toUpperCase() + clean.slice(1).toLowerCase();
+
+  return {
+    baseWord: upper,
+    displayWord,
+    gender: entry.gender,
+    genderLabel,
+    mianownik,
+    dopelniacz,
+    biernik,
+    options: shuffle(Array.from(optionsSet)),
+  };
+}
+
+export interface DeclensionLetterChallenge {
+  id: string;
+  baseWord: string;
+  caseType: DeclensionCaseType;
+  caseName: string;
+  caseQuestion: string;
+  sentencePrefix: string;
+  wordStem: string;
+  missingLetters: string; // e.g. "on", "a", "i", "ę"
+  sentenceSuffix: string;
+  fullWord: string;
+  fullSentence: string;
+  hint?: string;
+  letterChoices: string[]; // Shuffled array of uppercase letters (correct + distractors)
+}
+
+interface RawCaseChallenge {
+  prefix: string;
+  stem: string;
+  missing: string;
+  suffix: string;
+  fullWord: string;
+  fullSentence: string;
+}
+
+const CURATED_CASE_CHALLENGES: Record<
+  string,
+  {
+    mianownik: RawCaseChallenge;
+    dopelniacz: RawCaseChallenge;
+    biernik: RawCaseChallenge;
+  }
+> = {
+  TELEFON: {
+    mianownik: {
+      prefix: 'Gdzie jest mój ',
+      stem: 'telef',
+      missing: 'on',
+      suffix: '?',
+      fullWord: 'telefon',
+      fullSentence: 'Gdzie jest mój telefon?',
+    },
+    dopelniacz: {
+      prefix: 'W mojej kieszeni nie ma ',
+      stem: 'telef',
+      missing: 'onu',
+      suffix: '!',
+      fullWord: 'telefonu',
+      fullSentence: 'W mojej kieszeni nie ma telefonu!',
+    },
+    biernik: {
+      prefix: 'Na biurku w pokoju widzę ',
+      stem: 'telef',
+      missing: 'on',
+      suffix: '.',
+      fullWord: 'telefon',
+      fullSentence: 'Na biurku w pokoju widzę telefon.',
+    },
+  },
+  PRALKA: {
+    mianownik: {
+      prefix: 'Tu stoi moja nowa ',
+      stem: 'pralk',
+      missing: 'a',
+      suffix: '.',
+      fullWord: 'pralka',
+      fullSentence: 'Tu stoi moja nowa pralka.',
+    },
+    dopelniacz: {
+      prefix: 'W nowym mieszkaniu nie ma ',
+      stem: 'pralk',
+      missing: 'i',
+      suffix: '!',
+      fullWord: 'pralki',
+      fullSentence: 'W nowym mieszkaniu nie ma pralki!',
+    },
+    biernik: {
+      prefix: 'W sklepie z mamą oglądam ',
+      stem: 'pralk',
+      missing: 'ę',
+      suffix: '.',
+      fullWord: 'pralkę',
+      fullSentence: 'W sklepie z mamą oglądam pralkę.',
+    },
+  },
+  TELEWIZOR: {
+    mianownik: {
+      prefix: 'W naszym salonie stoi nowoczesny ',
+      stem: 'telewiz',
+      missing: 'or',
+      suffix: '.',
+      fullWord: 'telewizor',
+      fullSentence: 'W naszym salonie stoi nowoczesny telewizor.',
+    },
+    dopelniacz: {
+      prefix: 'W pokoju dziecięcym nie ma ',
+      stem: 'telewiz',
+      missing: 'ora',
+      suffix: '!',
+      fullWord: 'telewizora',
+      fullSentence: 'W pokoju dziecięcym nie ma telewizora!',
+    },
+    biernik: {
+      prefix: 'Wieczorem z całą rodziną włączamy ',
+      stem: 'telewiz',
+      missing: 'or',
+      suffix: '.',
+      fullWord: 'telewizor',
+      fullSentence: 'Wieczorem z całą rodziną włączamy telewizor.',
+    },
+  },
+  KOMPUTER: {
+    mianownik: {
+      prefix: 'Na biurku ucznia stoi szybki ',
+      stem: 'komput',
+      missing: 'er',
+      suffix: '.',
+      fullWord: 'komputer',
+      fullSentence: 'Na biurku ucznia stoi szybki komputer.',
+    },
+    dopelniacz: {
+      prefix: 'W sali gimnastycznej nie ma ',
+      stem: 'komput',
+      missing: 'era',
+      suffix: '!',
+      fullWord: 'komputera',
+      fullSentence: 'W sali gimnastycznej nie ma komputera!',
+    },
+    biernik: {
+      prefix: 'Do nauki i ciekawych zadań włączam ',
+      stem: 'komput',
+      missing: 'er',
+      suffix: '.',
+      fullWord: 'komputer',
+      fullSentence: 'Do nauki i ciekawych zadań włączam komputer.',
+    },
+  },
+  CZAJNIK: {
+    mianownik: {
+      prefix: 'W kuchni na kuchence stoi gorący ',
+      stem: 'czajn',
+      missing: 'ik',
+      suffix: '.',
+      fullWord: 'czajnik',
+      fullSentence: 'W kuchni na kuchence stoi gorący czajnik.',
+    },
+    dopelniacz: {
+      prefix: 'Na wycieczce w namiocie nie mamy ',
+      stem: 'czajn',
+      missing: 'ika',
+      suffix: '!',
+      fullWord: 'czajnika',
+      fullSentence: 'Na wycieczce w namiocie nie mamy czajnika!',
+    },
+    biernik: {
+      prefix: 'Przed zrobieniem herbaty napełniam ',
+      stem: 'czajn',
+      missing: 'ik',
+      suffix: '.',
+      fullWord: 'czajnik',
+      fullSentence: 'Przed zrobieniem herbaty napełniam czajnik.',
+    },
+  },
+  LAPTOP: {
+    mianownik: {
+      prefix: 'Na stoliku leży nowoczesny ',
+      stem: 'lapt',
+      missing: 'op',
+      suffix: '.',
+      fullWord: 'laptop',
+      fullSentence: 'Na stoliku leży nowoczesny laptop.',
+    },
+    dopelniacz: {
+      prefix: 'W plecaku podróżnym nie ma ',
+      stem: 'lapt',
+      missing: 'opa',
+      suffix: '!',
+      fullWord: 'laptopa',
+      fullSentence: 'W plecaku podróżnym nie ma laptopa!',
+    },
+    biernik: {
+      prefix: 'Do nauki i pisania otwieram ',
+      stem: 'lapt',
+      missing: 'op',
+      suffix: '.',
+      fullWord: 'laptop',
+      fullSentence: 'Do nauki i pisania otwieram laptop.',
+    },
+  },
+  KURTKA: {
+    mianownik: {
+      prefix: 'Gdzie wisi moja ciepła ',
+      stem: 'kurtk',
+      missing: 'a',
+      suffix: '?',
+      fullWord: 'kurtka',
+      fullSentence: 'Gdzie wisi moja ciepła kurtka?',
+    },
+    dopelniacz: {
+      prefix: 'W szafie nie ma mojej ',
+      stem: 'kurtk',
+      missing: 'i',
+      suffix: '!',
+      fullWord: 'kurtki',
+      fullSentence: 'W szafie nie ma mojej kurtki!',
+    },
+    biernik: {
+      prefix: 'Na spacer do parku wkładam ',
+      stem: 'kurtk',
+      missing: 'ę',
+      suffix: '.',
+      fullWord: 'kurtkę',
+      fullSentence: 'Na spacer do parku wkładam kurtkę.',
+    },
+  },
+  PARASOL: {
+    mianownik: {
+      prefix: 'W przedpokoju leży duży ',
+      stem: 'paras',
+      missing: 'ol',
+      suffix: '.',
+      fullWord: 'parasol',
+      fullSentence: 'W przedpokoju leży duży parasol.',
+    },
+    dopelniacz: {
+      prefix: 'Gdy mocno pada deszcz, nie mam ',
+      stem: 'paras',
+      missing: 'ola',
+      suffix: '!',
+      fullWord: 'parasola',
+      fullSentence: 'Gdy mocno pada deszcz, nie mam parasola!',
+    },
+    biernik: {
+      prefix: 'W deszczowy dzień biorę ze sobą ',
+      stem: 'paras',
+      missing: 'ol',
+      suffix: '.',
+      fullWord: 'parasol',
+      fullSentence: 'W deszczowy dzień biorę ze sobą parasol.',
+    },
+  },
+  OKNO: {
+    mianownik: {
+      prefix: 'W naszej klasie jest duże ',
+      stem: 'okn',
+      missing: 'o',
+      suffix: '.',
+      fullWord: 'okno',
+      fullSentence: 'W naszej klasie jest duże okno.',
+    },
+    dopelniacz: {
+      prefix: 'W ciemnej piwnicy nie ma żadnego ',
+      stem: 'okn',
+      missing: 'a',
+      suffix: '!',
+      fullWord: 'okna',
+      fullSentence: 'W ciemnej piwnicy nie ma żadnego okna!',
+    },
+    biernik: {
+      prefix: 'W ciepły poranek otwieram ',
+      stem: 'okn',
+      missing: 'o',
+      suffix: '.',
+      fullWord: 'okno',
+      fullSentence: 'W ciepły poranek otwieram okno.',
+    },
+  },
+  OŁÓWEK: {
+    mianownik: {
+      prefix: 'Gdzie leży mój ostry ',
+      stem: 'ołów',
+      missing: 'ek',
+      suffix: '?',
+      fullWord: 'ołówek',
+      fullSentence: 'Gdzie leży mój ostry ołówek?',
+    },
+    dopelniacz: {
+      prefix: 'W piórniku nie ma czerwonego ',
+      stem: 'ołów',
+      missing: 'ka',
+      suffix: '!',
+      fullWord: 'ołówka',
+      fullSentence: 'W piórniku nie ma czerwonego ołówka!',
+    },
+    biernik: {
+      prefix: 'Do rysowania zamku wybieram ',
+      stem: 'ołów',
+      missing: 'ek',
+      suffix: '.',
+      fullWord: 'ołówek',
+      fullSentence: 'Do rysowania zamku wybieram ołówek.',
+    },
+  },
+  OLOWEK: {
+    mianownik: {
+      prefix: 'Gdzie leży mój ostry ',
+      stem: 'ołów',
+      missing: 'ek',
+      suffix: '?',
+      fullWord: 'ołówek',
+      fullSentence: 'Gdzie leży mój ostry ołówek?',
+    },
+    dopelniacz: {
+      prefix: 'W piórniku nie ma czerwonego ',
+      stem: 'ołów',
+      missing: 'ka',
+      suffix: '!',
+      fullWord: 'ołówka',
+      fullSentence: 'W piórniku nie ma czerwonego ołówka!',
+    },
+    biernik: {
+      prefix: 'Do rysowania zamku wybieram ',
+      stem: 'ołów',
+      missing: 'ek',
+      suffix: '.',
+      fullWord: 'ołówek',
+      fullSentence: 'Do rysowania zamku wybieram ołówek.',
+    },
+  },
+  ZESZYT: {
+    mianownik: {
+      prefix: 'Na szkolnej ławce leży czysty ',
+      stem: 'zeszy',
+      missing: 't',
+      suffix: '.',
+      fullWord: 'zeszyt',
+      fullSentence: 'Na szkolnej ławce leży czysty zeszyt.',
+    },
+    dopelniacz: {
+      prefix: 'W plecaku Julka nie ma dziś ',
+      stem: 'zeszy',
+      missing: 'tu',
+      suffix: '!',
+      fullWord: 'zeszytu',
+      fullSentence: 'W plecaku Julka nie ma dziś zeszytu!',
+    },
+    biernik: {
+      prefix: 'Do polskiej szkoły pakuję nowy ',
+      stem: 'zeszy',
+      missing: 't',
+      suffix: '.',
+      fullWord: 'zeszyt',
+      fullSentence: 'Do polskiej szkoły pakuję nowy zeszyt.',
+    },
+  },
+  FLAGA: {
+    mianownik: {
+      prefix: 'Na wietrze powiewa biało-czerwona ',
+      stem: 'flag',
+      missing: 'a',
+      suffix: '.',
+      fullWord: 'flaga',
+      fullSentence: 'Na wietrze powiewa biało-czerwona flaga.',
+    },
+    dopelniacz: {
+      prefix: 'Na dachu tego budynku nie ma ',
+      stem: 'flag',
+      missing: 'i',
+      suffix: '!',
+      fullWord: 'flagi',
+      fullSentence: 'Na dachu tego budynku nie ma flagi!',
+    },
+    biernik: {
+      prefix: 'Podczas uroczystości dumnie niosę ',
+      stem: 'flag',
+      missing: 'ę',
+      suffix: '.',
+      fullWord: 'flagę',
+      fullSentence: 'Podczas uroczystości dumnie niosę flagę.',
+    },
+  },
+  PIES: {
+    mianownik: {
+      prefix: 'W ogrodzie biega mały, wesoły ',
+      stem: 'pi',
+      missing: 'es',
+      suffix: '.',
+      fullWord: 'pies',
+      fullSentence: 'W ogrodzie biega mały, wesoły pies.',
+    },
+    dopelniacz: {
+      prefix: 'Dzisiaj na podwórku nie ma ',
+      stem: 'ps',
+      missing: 'a',
+      suffix: '!',
+      fullWord: 'psa',
+      fullSentence: 'Dzisiaj na podwórku nie ma psa!',
+    },
+    biernik: {
+      prefix: 'Przez otwarte okno radośnie wołam ',
+      stem: 'ps',
+      missing: 'a',
+      suffix: '.',
+      fullWord: 'psa',
+      fullSentence: 'Przez otwarte okno radośnie wołam psa.',
+    },
+  },
+  KSIĄŻKA: {
+    mianownik: {
+      prefix: 'Na drewnianej półce leży gruba ',
+      stem: 'książk',
+      missing: 'a',
+      suffix: '.',
+      fullWord: 'książka',
+      fullSentence: 'Na drewnianej półce leży gruba książka.',
+    },
+    dopelniacz: {
+      prefix: 'W szkolnej bibliotece nie ma już tej ',
+      stem: 'książk',
+      missing: 'i',
+      suffix: '!',
+      fullWord: 'książki',
+      fullSentence: 'W szkolnej bibliotece nie ma już tej książki!',
+    },
+    biernik: {
+      prefix: 'Wieczorem przed snem czytam ',
+      stem: 'książk',
+      missing: 'ę',
+      suffix: '.',
+      fullWord: 'książkę',
+      fullSentence: 'Wieczorem przed snem czytam książkę.',
+    },
+  },
+  KSIAZKA: {
+    mianownik: {
+      prefix: 'Na drewnianej półce leży gruba ',
+      stem: 'książk',
+      missing: 'a',
+      suffix: '.',
+      fullWord: 'książka',
+      fullSentence: 'Na drewnianej półce leży gruba książka.',
+    },
+    dopelniacz: {
+      prefix: 'W szkolnej bibliotece nie ma już tej ',
+      stem: 'książk',
+      missing: 'i',
+      suffix: '!',
+      fullWord: 'książki',
+      fullSentence: 'W szkolnej bibliotece nie ma już tej książki!',
+    },
+    biernik: {
+      prefix: 'Wieczorem przed snem czytam ',
+      stem: 'książk',
+      missing: 'ę',
+      suffix: '.',
+      fullWord: 'książkę',
+      fullSentence: 'Wieczorem przed snem czytam książkę.',
+    },
+  },
+  SZKOŁA: {
+    mianownik: {
+      prefix: 'W każdą sobotę czeka na nas polska ',
+      stem: 'szkoł',
+      missing: 'a',
+      suffix: '.',
+      fullWord: 'szkoła',
+      fullSentence: 'W każdą sobotę czeka na nas polska szkoła.',
+    },
+    dopelniacz: {
+      prefix: 'W czasie wakacji w budynku nie ma ',
+      stem: 'szkoł',
+      missing: 'y',
+      suffix: '!',
+      fullWord: 'szkoły',
+      fullSentence: 'W czasie wakacji w budynku nie ma szkoły!',
+    },
+    biernik: {
+      prefix: 'Wszyscy bardzo lubimy naszą ',
+      stem: 'szkoł',
+      missing: 'ę',
+      suffix: '.',
+      fullWord: 'szkołę',
+      fullSentence: 'Wszyscy bardzo lubimy naszą szkołę.',
+    },
+  },
+  SZKOLA: {
+    mianownik: {
+      prefix: 'W każdą sobotę czeka na nas polska ',
+      stem: 'szkoł',
+      missing: 'a',
+      suffix: '.',
+      fullWord: 'szkoła',
+      fullSentence: 'W każdą sobotę czeka na nas polska szkoła.',
+    },
+    dopelniacz: {
+      prefix: 'W czasie wakacji w budynku nie ma ',
+      stem: 'szkoł',
+      missing: 'y',
+      suffix: '!',
+      fullWord: 'szkoły',
+      fullSentence: 'W czasie wakacji w budynku nie ma szkoły!',
+    },
+    biernik: {
+      prefix: 'Wszyscy bardzo lubimy naszą ',
+      stem: 'szkoł',
+      missing: 'ę',
+      suffix: '.',
+      fullWord: 'szkołę',
+      fullSentence: 'Wszyscy bardzo lubimy naszą szkołę.',
+    },
+  },
+  PIÓRNIK: {
+    mianownik: {
+      prefix: 'Gdzie leży mój ulubiony ',
+      stem: 'piórn',
+      missing: 'ik',
+      suffix: '?',
+      fullWord: 'piórnik',
+      fullSentence: 'Gdzie leży mój ulubiony piórnik?',
+    },
+    dopelniacz: {
+      prefix: 'Na biurku nie ma szkolnego ',
+      stem: 'piórn',
+      missing: 'ika',
+      suffix: '!',
+      fullWord: 'piórnika',
+      fullSentence: 'Na biurku nie ma szkolnego piórnika!',
+    },
+    biernik: {
+      prefix: 'Do szkolnego plecaka chętnie pakuję ',
+      stem: 'piórn',
+      missing: 'ik',
+      suffix: '.',
+      fullWord: 'piórnik',
+      fullSentence: 'Do szkolnego plecaka chętnie pakuję piórnik.',
+    },
+  },
+  PIORNIK: {
+    mianownik: {
+      prefix: 'Gdzie leży mój ulubiony ',
+      stem: 'piórn',
+      missing: 'ik',
+      suffix: '?',
+      fullWord: 'piórnik',
+      fullSentence: 'Gdzie leży mój ulubiony piórnik?',
+    },
+    dopelniacz: {
+      prefix: 'Na biurku nie ma szkolnego ',
+      stem: 'piórn',
+      missing: 'ika',
+      suffix: '!',
+      fullWord: 'piórnika',
+      fullSentence: 'Na biurku nie ma szkolnego piórnika!',
+    },
+    biernik: {
+      prefix: 'Do szkolnego plecaka chętnie pakuję ',
+      stem: 'piórn',
+      missing: 'ik',
+      suffix: '.',
+      fullWord: 'piórnik',
+      fullSentence: 'Do szkolnego plecaka chętnie pakuję piórnik.',
+    },
+  },
+  SŁOŃCE: {
+    mianownik: {
+      prefix: 'Na niebie świeci gorące ',
+      stem: 'słońc',
+      missing: 'e',
+      suffix: '.',
+      fullWord: 'słońce',
+      fullSentence: 'Na niebie świeci gorące słońce.',
+    },
+    dopelniacz: {
+      prefix: 'Gdy niebo zasnują chmury, nie ma ',
+      stem: 'słońc',
+      missing: 'a',
+      suffix: '!',
+      fullWord: 'słońca',
+      fullSentence: 'Gdy niebo zasnują chmury, nie ma słońca!',
+    },
+    biernik: {
+      prefix: 'Przez okno klasy z uśmiechem witam ',
+      stem: 'słońc',
+      missing: 'e',
+      suffix: '.',
+      fullWord: 'słońce',
+      fullSentence: 'Przez okno klasy z uśmiechem witam słońce.',
+    },
+  },
+  SLONCE: {
+    mianownik: {
+      prefix: 'Na niebie świeci gorące ',
+      stem: 'słońc',
+      missing: 'e',
+      suffix: '.',
+      fullWord: 'słońce',
+      fullSentence: 'Na niebie świeci gorące słońce.',
+    },
+    dopelniacz: {
+      prefix: 'Gdy niebo zasnują chmury, nie ma ',
+      stem: 'słońc',
+      missing: 'a',
+      suffix: '!',
+      fullWord: 'słońca',
+      fullSentence: 'Gdy niebo zasnują chmury, nie ma słońca!',
+    },
+    biernik: {
+      prefix: 'Przez okno klasy z uśmiechem witam ',
+      stem: 'słońc',
+      missing: 'e',
+      suffix: '.',
+      fullWord: 'słońce',
+      fullSentence: 'Przez okno klasy z uśmiechem witam słońce.',
+    },
+  },
+  MORZE: {
+    mianownik: {
+      prefix: 'W oddali szumi polskie ',
+      stem: 'morz',
+      missing: 'e',
+      suffix: '.',
+      fullWord: 'morze',
+      fullSentence: 'W oddali szumi polskie morze.',
+    },
+    dopelniacz: {
+      prefix: 'Wysoko w górach niestety nie ma ',
+      stem: 'morz',
+      missing: 'a',
+      suffix: '!',
+      fullWord: 'morza',
+      fullSentence: 'Wysoko w górach niestety nie ma morza!',
+    },
+    biernik: {
+      prefix: 'W czasie wakacji chętnie odwiedzam ',
+      stem: 'morz',
+      missing: 'e',
+      suffix: '.',
+      fullWord: 'morze',
+      fullSentence: 'W czasie wakacji chętnie odwiedzam morze.',
+    },
+  },
+  ORZEŁ: {
+    mianownik: {
+      prefix: 'W polskim godle dumnie widnieje biały ',
+      stem: 'orz',
+      missing: 'eł',
+      suffix: '.',
+      fullWord: 'orzeł',
+      fullSentence: 'W polskim godle dumnie widnieje biały orzeł.',
+    },
+    dopelniacz: {
+      prefix: 'Na tej monecie nie ma wizerunku ',
+      stem: 'orł',
+      missing: 'a',
+      suffix: '!',
+      fullWord: 'orła',
+      fullSentence: 'Na tej monecie nie ma wizerunku orła!',
+    },
+    biernik: {
+      prefix: 'W herbie Polski z dumą podziwiam białego ',
+      stem: 'orł',
+      missing: 'a',
+      suffix: '.',
+      fullWord: 'orła',
+      fullSentence: 'W herbie Polski z dumą podziwiam białego orła.',
+    },
+  },
+  ORZEL: {
+    mianownik: {
+      prefix: 'W polskim godle dumnie widnieje biały ',
+      stem: 'orz',
+      missing: 'eł',
+      suffix: '.',
+      fullWord: 'orzeł',
+      fullSentence: 'W polskim godle dumnie widnieje biały orzeł.',
+    },
+    dopelniacz: {
+      prefix: 'Na tej monecie nie ma wizerunku ',
+      stem: 'orł',
+      missing: 'a',
+      suffix: '!',
+      fullWord: 'orła',
+      fullSentence: 'Na tej monecie nie ma wizerunku orła!',
+    },
+    biernik: {
+      prefix: 'W herbie Polski z dumą podziwiam białego ',
+      stem: 'orł',
+      missing: 'a',
+      suffix: '.',
+      fullWord: 'orła',
+      fullSentence: 'W herbie Polski z dumą podziwiam białego orła.',
+    },
+  },
+  SYRENKA: {
+    mianownik: {
+      prefix: 'Nad brzegiem rzeki stoi warszawska ',
+      stem: 'syrenk',
+      missing: 'a',
+      suffix: '.',
+      fullWord: 'syrenka',
+      fullSentence: 'Nad brzegiem rzeki stoi warszawska syrenka.',
+    },
+    dopelniacz: {
+      prefix: 'W żadnym innym mieście nie ma takiej ',
+      stem: 'syrenk',
+      missing: 'i',
+      suffix: '!',
+      fullWord: 'syrenki',
+      fullSentence: 'W żadnym innym mieście nie ma takiej syrenki!',
+    },
+    biernik: {
+      prefix: 'Na herbie Warszawy widzę dzielną ',
+      stem: 'syrenk',
+      missing: 'ę',
+      suffix: '.',
+      fullWord: 'syrenkę',
+      fullSentence: 'Na herbie Warszawy widzę dzielną syrenkę.',
+    },
+  },
+  ZAMEK: {
+    mianownik: {
+      prefix: 'W Warszawie wznosi się Królewski ',
+      stem: 'zam',
+      missing: 'ek',
+      suffix: '.',
+      fullWord: 'zamek',
+      fullSentence: 'W Warszawie wznosi się Królewski zamek.',
+    },
+    dopelniacz: {
+      prefix: 'W tej małej wiosce nie ma żadnego ',
+      stem: 'zam',
+      missing: 'ku',
+      suffix: '!',
+      fullWord: 'zamku',
+      fullSentence: 'W tej małej wiosce nie ma żadnego zamku!',
+    },
+    biernik: {
+      prefix: 'Podczas wycieczki do stolicy zwiedzam ',
+      stem: 'zam',
+      missing: 'ek',
+      suffix: '.',
+      fullWord: 'zamek',
+      fullSentence: 'Podczas wycieczki do stolicy zwiedzam zamek.',
+    },
+  },
+  WISŁA: {
+    mianownik: {
+      prefix: 'Przez całą Polskę płynie piękna rzeka ',
+      stem: 'wisł',
+      missing: 'a',
+      suffix: '.',
+      fullWord: 'Wisła',
+      fullSentence: 'Przez całą Polskę płynie piękna rzeka Wisła.',
+    },
+    dopelniacz: {
+      prefix: 'W Krakowie nie ma mostu bez widoku ',
+      stem: 'wisł',
+      missing: 'y',
+      suffix: '!',
+      fullWord: 'Wisły',
+      fullSentence: 'W Krakowie nie ma mostu bez widoku Wisły!',
+    },
+    biernik: {
+      prefix: 'Podczas rejsu statkiem przepływamy szeroką ',
+      stem: 'wisł',
+      missing: 'ę',
+      suffix: '.',
+      fullWord: 'Wisłę',
+      fullSentence: 'Podczas rejsu statkiem przepływamy szeroką Wisłę.',
+    },
+  },
+  WISLA: {
+    mianownik: {
+      prefix: 'Przez całą Polskę płynie piękna rzeka ',
+      stem: 'wisł',
+      missing: 'a',
+      suffix: '.',
+      fullWord: 'Wisła',
+      fullSentence: 'Przez całą Polskę płynie piękna rzeka Wisła.',
+    },
+    dopelniacz: {
+      prefix: 'W Krakowie nie ma mostu bez widoku ',
+      stem: 'wisł',
+      missing: 'y',
+      suffix: '!',
+      fullWord: 'Wisły',
+      fullSentence: 'W Krakowie nie ma mostu bez widoku Wisły!',
+    },
+    biernik: {
+      prefix: 'Podczas rejsu statkiem przepływamy szeroką ',
+      stem: 'wisł',
+      missing: 'ę',
+      suffix: '.',
+      fullWord: 'Wisłę',
+      fullSentence: 'Podczas rejsu statkiem przepływamy szeroką Wisłę.',
+    },
+  },
+  KOT: {
+    mianownik: {
+      prefix: 'Na parapecie smacznie śpi bury ',
+      stem: 'ko',
+      missing: 't',
+      suffix: '.',
+      fullWord: 'kot',
+      fullSentence: 'Na parapecie smacznie śpi bury kot.',
+    },
+    dopelniacz: {
+      prefix: 'W kuchni przy misce nie ma małego ',
+      stem: 'ko',
+      missing: 'ta',
+      suffix: '!',
+      fullWord: 'kota',
+      fullSentence: 'W kuchni przy misce nie ma małego kota!',
+    },
+    biernik: {
+      prefix: 'Przez miękkie futerko głaszczę mojego ',
+      stem: 'ko',
+      missing: 'ta',
+      suffix: '.',
+      fullWord: 'kota',
+      fullSentence: 'Przez miękkie futerko głaszczę mojego kota.',
+    },
+  },
+  PLECAK: {
+    mianownik: {
+      prefix: 'Gdzie stoi mój nowy, szkolny ',
+      stem: 'plec',
+      missing: 'ak',
+      suffix: '?',
+      fullWord: 'plecak',
+      fullSentence: 'Gdzie stoi mój nowy, szkolny plecak?',
+    },
+    dopelniacz: {
+      prefix: 'W przedpokoju nie ma mojego ',
+      stem: 'plec',
+      missing: 'aka',
+      suffix: '!',
+      fullWord: 'plecaka',
+      fullSentence: 'W przedpokoju nie ma mojego plecaka!',
+    },
+    biernik: {
+      prefix: 'Do polskiej szkoły dumnie niosę ',
+      stem: 'plec',
+      missing: 'ak',
+      suffix: '.',
+      fullWord: 'plecak',
+      fullSentence: 'Do polskiej szkoły dumnie niosę plecak.',
+    },
+  },
+  DRZEWO: {
+    mianownik: {
+      prefix: 'Przed szkołą rośnie wysokie, zielone ',
+      stem: 'drzew',
+      missing: 'o',
+      suffix: '.',
+      fullWord: 'drzewo',
+      fullSentence: 'Przed szkołą rośnie wysokie, zielone drzewo.',
+    },
+    dopelniacz: {
+      prefix: 'Na środku boiska nie ma żadnego ',
+      stem: 'drzew',
+      missing: 'a',
+      suffix: '!',
+      fullWord: 'drzewa',
+      fullSentence: 'Na środku boiska nie ma żadnego drzewa!',
+    },
+    biernik: {
+      prefix: 'W ogrodzie podlewam młode ',
+      stem: 'drzew',
+      missing: 'o',
+      suffix: '.',
+      fullWord: 'drzewo',
+      fullSentence: 'W ogrodzie podlewam młode drzewo.',
+    },
+  },
+  CZAPKA: {
+    mianownik: {
+      prefix: 'Gdzie leży moja ciepła ',
+      stem: 'czapk',
+      missing: 'a',
+      suffix: '?',
+      fullWord: 'czapka',
+      fullSentence: 'Gdzie leży moja ciepła czapka?',
+    },
+    dopelniacz: {
+      prefix: 'W szufladzie nie ma zimowej ',
+      stem: 'czapk',
+      missing: 'i',
+      suffix: '!',
+      fullWord: 'czapki',
+      fullSentence: 'W szufladzie nie ma zimowej czapki!',
+    },
+    biernik: {
+      prefix: 'Na mroźny dzień wkładam ',
+      stem: 'czapk',
+      missing: 'ę',
+      suffix: '.',
+      fullWord: 'czapkę',
+      fullSentence: 'Na mroźny dzień wkładam czapkę.',
+    },
+  },
+  GODŁO: {
+    mianownik: {
+      prefix: 'W klasie wisi polskie narodowe ',
+      stem: 'godł',
+      missing: 'o',
+      suffix: '.',
+      fullWord: 'godło',
+      fullSentence: 'W klasie wisi polskie narodowe godło.',
+    },
+    dopelniacz: {
+      prefix: 'Na tym rysunku nie ma jeszcze ',
+      stem: 'godł',
+      missing: 'a',
+      suffix: '!',
+      fullWord: 'godła',
+      fullSentence: 'Na tym rysunku nie ma jeszcze godła!',
+    },
+    biernik: {
+      prefix: 'Na ścianie z szacunkiem oglądamy ',
+      stem: 'godł',
+      missing: 'o',
+      suffix: '.',
+      fullWord: 'godło',
+      fullSentence: 'Na ścianie z szacunkiem oglądamy godło.',
+    },
+  },
+  GODLO: {
+    mianownik: {
+      prefix: 'W klasie wisi polskie narodowe ',
+      stem: 'godł',
+      missing: 'o',
+      suffix: '.',
+      fullWord: 'godło',
+      fullSentence: 'W klasie wisi polskie narodowe godło.',
+    },
+    dopelniacz: {
+      prefix: 'Na tym rysunku nie ma jeszcze ',
+      stem: 'godł',
+      missing: 'a',
+      suffix: '!',
+      fullWord: 'godła',
+      fullSentence: 'Na tym rysunku nie ma jeszcze godła!',
+    },
+    biernik: {
+      prefix: 'Na ścianie z szacunkiem oglądamy ',
+      stem: 'godł',
+      missing: 'o',
+      suffix: '.',
+      fullWord: 'godło',
+      fullSentence: 'Na ścianie z szacunkiem oglądamy godło.',
+    },
+  },
+};
+
+const COMMON_DISTRACTOR_LETTERS = ['A', 'E', 'I', 'O', 'U', 'Y', 'Ę', 'Ą', 'K', 'T', 'L', 'M', 'N', 'S', 'P', 'R', 'D'];
+
+/**
+ * Creates letter choices for a challenge: the correct missing letters + 4-5 distractors
+ */
+function createLetterChoices(missingLetters: string): string[] {
+  const letters = missingLetters.toUpperCase().split('');
+  const neededLetters = [...letters];
+
+  // Pick 4-5 distractor letters not duplicating too much
+  const distractors: string[] = [];
+  const shuffledCommon = shuffle([...COMMON_DISTRACTOR_LETTERS]);
+
+  for (const cand of shuffledCommon) {
+    if (distractors.length >= 5) break;
+    if (!neededLetters.includes(cand) || distractors.filter((d) => d === cand).length === 0) {
+      distractors.push(cand);
+    }
+  }
+
+  return shuffle([...neededLetters, ...distractors]);
+}
+
+/**
+ * Algorithmic generator for any custom word not in the curated dictionary
+ */
+function generateFallbackChallenges(rawWord: string): {
+  mianownik: RawCaseChallenge;
+  dopelniacz: RawCaseChallenge;
+  biernik: RawCaseChallenge;
+} {
+  const clean = cleanWord(rawWord).toLowerCase();
+  const upper = clean.toUpperCase();
+  const entry: RawDeclensionEntry = KNOWN_DECLENSIONS[upper] || generateAlgorithmicDeclension(rawWord);
+  
+  // Compute common stem
+  let stem = clean;
+  if (stem.length > 3) {
+    if (stem.endsWith('a') || stem.endsWith('o') || stem.endsWith('e')) {
+      stem = stem.slice(0, -1);
+    } else {
+      stem = stem.slice(0, -2);
+    }
+  } else if (stem.length > 2) {
+    stem = stem.slice(0, -1);
+  }
+
+  const mMissing = entry.m.toLowerCase().startsWith(stem) ? entry.m.toLowerCase().slice(stem.length) : entry.m;
+  const dMissing = entry.d.toLowerCase().startsWith(stem) ? entry.d.toLowerCase().slice(stem.length) : entry.d;
+  const bMissing = entry.b.toLowerCase().startsWith(stem) ? entry.b.toLowerCase().slice(stem.length) : entry.b;
+
+  const prefixes = getSentencePrefixes(entry.gender);
+
+  return {
+    mianownik: {
+      prefix: `Gdzie jest ${prefixes.mianownikPrefix.toLowerCase().replace('tu jest ', '')} `,
+      stem,
+      missing: mMissing || 'a',
+      suffix: '?',
+      fullWord: entry.m,
+      fullSentence: `Gdzie jest ${prefixes.mianownikPrefix.toLowerCase().replace('tu jest ', '')} ${entry.m}?`,
+    },
+    dopelniacz: {
+      prefix: `${prefixes.dopelniaczPrefix} `,
+      stem,
+      missing: dMissing || 'i',
+      suffix: '!',
+      fullWord: entry.d,
+      fullSentence: `${prefixes.dopelniaczPrefix} ${entry.d}!`,
+    },
+    biernik: {
+      prefix: `${prefixes.biernikPrefix} `,
+      stem,
+      missing: bMissing || 'ę',
+      suffix: '.',
+      fullWord: entry.b,
+      fullSentence: `${prefixes.biernikPrefix} ${entry.b}.`,
+    },
+  };
+}
+
+/**
+ * Generates an array of individual, shuffled sentence challenges for the "Cases" game.
+ * Each challenge asks the child to fill in the missing letters for a word stem in a sentence.
+ *
+ * Words and grammatical cases (Mianownik, Dopełniacz, Biernik) are mixed and shuffled!
+ */
+export function generateDeclensionLetterChallenges(
+  inputWords: { word: string; hint?: string }[] | string[]
+): DeclensionLetterChallenge[] {
+  // Normalized word list
+  const wordEntries: { word: string; hint?: string }[] = (inputWords || []).map((item) => {
+    if (typeof item === 'string') {
+      return { word: item };
+    }
+    return item;
+  });
+
+  const words = wordEntries.length > 0 ? wordEntries : [{ word: 'TELEFON' }, { word: 'PRALKA' }, { word: 'KURTKA' }];
+
+  const allChallenges: DeclensionLetterChallenge[] = [];
+  const cases: DeclensionCaseType[] = ['mianownik', 'dopelniacz', 'biernik'];
+
+  const caseMeta: Record<DeclensionCaseType, { name: string; question: string }> = {
+    mianownik: { name: 'Mianownik', question: 'Kto? Co?' },
+    dopelniacz: { name: 'Dopełniacz', question: 'Kogo? Czego nie ma?' },
+    biernik: { name: 'Biernik', question: 'Kogo? Co widzę?' },
+  };
+
+  words.forEach((entry, wordIndex) => {
+    const upper = cleanWord(entry.word).toUpperCase();
+    const challengeSet = CURATED_CASE_CHALLENGES[upper] || generateFallbackChallenges(entry.word);
+
+    cases.forEach((cType) => {
+      const cData = challengeSet[cType];
+      if (cData && cData.missing.length > 0) {
+        allChallenges.push({
+          id: `case-ch-${upper}-${cType}-${wordIndex}`,
+          baseWord: upper,
+          caseType: cType,
+          caseName: caseMeta[cType].name,
+          caseQuestion: caseMeta[cType].question,
+          sentencePrefix: cData.prefix,
+          wordStem: cData.stem,
+          missingLetters: cData.missing,
+          sentenceSuffix: cData.suffix,
+          fullWord: cData.fullWord,
+          fullSentence: cData.fullSentence,
+          hint: entry.hint,
+          letterChoices: createLetterChoices(cData.missing),
+        });
+      }
+    });
+  });
+
+  // Shuffle the challenges thoroughly so words and cases are mixed!
+  const shuffledChallenges = shuffle(allChallenges);
+
+  // Pick up to 10-12 diverse challenges per round (or all if <= 10)
+  const maxChallenges = Math.min(shuffledChallenges.length, Math.max(8, words.length * 2));
+  return shuffledChallenges.slice(0, maxChallenges);
+}
+

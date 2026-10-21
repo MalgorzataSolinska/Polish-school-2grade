@@ -59,7 +59,7 @@ function sanitizeForFirestore<T>(obj: T): T {
   return JSON.parse(JSON.stringify(obj, (key, value) => (value === undefined ? null : value)));
 }
 
-export const LOCAL_STORAGE_KEY = 'szkolka_cloud_data_cache_v5';
+export const LOCAL_STORAGE_KEY = 'szkolka_cloud_data_cache_v7';
 
 export function normalizeDailyTasks(tasks: DailyTask[]): DailyTask[] {
   if (!Array.isArray(tasks) || tasks.length === 0) {
