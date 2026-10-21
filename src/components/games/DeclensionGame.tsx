@@ -36,6 +36,7 @@ export const DeclensionGame: React.FC<DeclensionGameProps> = ({ items, onComplet
       { id: 'cas-def-11', word: 'FLAGA', hint: 'Biało-czerwona flaga Polski' },
       { id: 'cas-def-12', word: 'PIES', hint: 'Wierny czworonożny przyjaciel' },
       { id: 'cas-def-13', word: 'KSIĄŻKA', hint: 'Książka do czytania' },
+      { id: 'cas-def-14', word: 'KUCHNIA', hint: 'Kuchnia do gotowania i pieczenia' },
     ];
   }, [items]);
 

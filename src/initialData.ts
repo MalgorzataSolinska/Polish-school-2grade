@@ -156,6 +156,7 @@ export const INITIAL_DAILY_TASKS: DailyTask[] = [
       { id: 'cas-22-11', word: 'SYRENKA', hint: 'Warszawska Syrenka' },
       { id: 'cas-22-12', word: 'ZAMEK', hint: 'Zamek Królewski w Warszawie' },
       { id: 'cas-22-13', word: 'WISŁA', hint: 'Najdłuższa polska rzeka' },
+      { id: 'cas-22-14', word: 'KUCHNIA', hint: 'Pyszne gotowanie w kuchni' },
     ],
   },
 

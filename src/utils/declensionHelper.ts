@@ -53,6 +53,69 @@ const KNOWN_DECLENSIONS: Record<string, RawDeclensionEntry> = {
     b: 'pralkę',
     distractors: ['pralką', 'pralce'],
   },
+  'KUCHNIA': {
+    gender: 'fem',
+    m: 'kuchnia',
+    d: 'kuchni',
+    b: 'kuchnię',
+    distractors: ['kuchnią', 'kuchnie', 'kuchce'],
+  },
+  'ŁAZIENKA': {
+    gender: 'fem',
+    m: 'łazienka',
+    d: 'łazienki',
+    b: 'łazienkę',
+    distractors: ['łazienką', 'łazience'],
+  },
+  'LAZIENKA': {
+    gender: 'fem',
+    m: 'łazienka',
+    d: 'łazienki',
+    b: 'łazienkę',
+    distractors: ['łazienką', 'łazience'],
+  },
+  'SYPIALNIA': {
+    gender: 'fem',
+    m: 'sypialnia',
+    d: 'sypialni',
+    b: 'sypialnię',
+    distractors: ['sypialnią', 'sypialnie'],
+  },
+  'JADALNIA': {
+    gender: 'fem',
+    m: 'jadalnia',
+    d: 'jadalni',
+    b: 'jadalnię',
+    distractors: ['jadalnią', 'jadalnie'],
+  },
+  'BABCIA': {
+    gender: 'fem',
+    m: 'babcia',
+    d: 'babci',
+    b: 'babcię',
+    distractors: ['babcią', 'babcie'],
+  },
+  'CIOCIA': {
+    gender: 'fem',
+    m: 'ciocia',
+    d: 'cioci',
+    b: 'ciocię',
+    distractors: ['ciocią', 'ciocie'],
+  },
+  'ZIEMIA': {
+    gender: 'fem',
+    m: 'ziemia',
+    d: 'ziemi',
+    b: 'ziemię',
+    distractors: ['ziemią', 'ziemie'],
+  },
+  'DYNIA': {
+    gender: 'fem',
+    m: 'dynia',
+    d: 'dyni',
+    b: 'dynię',
+    distractors: ['dynią', 'dynie'],
+  },
 
   // Sprzęty AGD i elektronika (Dopełniacz na -a: telewizora, komputera, czajnika itp.)
   'TELEWIZOR': {
@@ -576,10 +639,54 @@ function generateAlgorithmicDeclension(rawWord: string): RawDeclensionEntry {
   const clean = cleanWord(rawWord).toLowerCase();
   const lastChar = clean.slice(-1);
 
-  // Feminine in -a (e.g. pralka, kurtka, flaga)
+  // Feminine in -a (e.g. pralka, kurtka, flaga, kuchnia, sypialnia, babcia)
   if (lastChar === 'a') {
+    // Feminine ending in -ia (e.g. kuchnia, sypialnia, babcia, ciocia, ziemia, lilia, armia)
+    if (clean.endsWith('ia')) {
+      const stemWithoutIa = clean.slice(0, -2); // e.g. "kuchn", "babc", "sypialn"
+      // Borrowed/foreign nouns in -lia, -ria, -ia take -ii (armii, lilii, historii)
+      const takesDoubleI =
+        /(ria|lia|fii|gii)$/i.test(clean) ||
+        /(armia|lilia|historia|geografia|filharmonia|dania|francja|grecja)/i.test(clean);
+      const dEnding = takesDoubleI ? 'ii' : 'i';
+      return {
+        gender: 'fem',
+        m: clean,
+        d: stemWithoutIa + dEnding,
+        b: stemWithoutIa + 'ię',
+        distractors: [stemWithoutIa + 'ią', stemWithoutIa + 'ie'],
+      };
+    }
+
+    // Feminine ending in -ja (e.g. lekcja, stacja, szyja, żmija, nadzieja)
+    if (clean.endsWith('ja')) {
+      if (/[aeiouy]ja$/i.test(clean)) {
+        // Vowel + ja: szyja -> szyi, żmija -> żmii, nadzieja -> nadziei
+        const stemWithoutJa = clean.slice(0, -2);
+        return {
+          gender: 'fem',
+          m: clean,
+          d: stemWithoutJa + 'i',
+          b: stemWithoutJa + 'ję',
+          distractors: [stemWithoutJa + 'ją', clean],
+        };
+      } else {
+        // Consonant + ja: lekcja -> lekcji, stacja -> stacji
+        const stemWithoutA = clean.slice(0, -1);
+        return {
+          gender: 'fem',
+          m: clean,
+          d: stemWithoutA + 'i',
+          b: stemWithoutA + 'ę',
+          distractors: [stemWithoutA + 'ą', stemWithoutA + 'e'],
+        };
+      }
+    }
+
+    // Regular feminine in -a: pralka, kurtka, flaga, szkoła, woda, sobota
     const stem = clean.slice(0, -1);
     const stemLast = stem.slice(-1);
+    // In Polish, after k, g, l write -i, after hard consonants write -y
     const dEnding = stemLast === 'k' || stemLast === 'g' || stemLast === 'l' ? 'i' : 'y';
     return {
       gender: 'fem',
@@ -814,6 +921,32 @@ const CURATED_CASE_CHALLENGES: Record<
       suffix: '.',
       fullWord: 'pralkę',
       fullSentence: 'W sklepie z mamą oglądam pralkę.',
+    },
+  },
+  KUCHNIA: {
+    mianownik: {
+      prefix: 'W naszym domu jest piękna ',
+      stem: 'kuchn',
+      missing: 'ia',
+      suffix: '.',
+      fullWord: 'kuchnia',
+      fullSentence: 'W naszym domu jest piękna kuchnia.',
+    },
+    dopelniacz: {
+      prefix: 'Nie ma mojej ',
+      stem: 'kuchn',
+      missing: 'i',
+      suffix: '!',
+      fullWord: 'kuchni',
+      fullSentence: 'Nie ma mojej kuchni!',
+    },
+    biernik: {
+      prefix: 'Przez otwarte drzwi oglądam jasną ',
+      stem: 'kuchn',
+      missing: 'ię',
+      suffix: '.',
+      fullWord: 'kuchnię',
+      fullSentence: 'Przez otwarte drzwi oglądam jasną kuchnię.',
     },
   },
   TELEWIZOR: {
@@ -1714,7 +1847,9 @@ function generateFallbackChallenges(rawWord: string): {
   // Compute common stem
   let stem = clean;
   if (stem.length > 3) {
-    if (stem.endsWith('a') || stem.endsWith('o') || stem.endsWith('e')) {
+    if (stem.endsWith('ia') || stem.endsWith('ja')) {
+      stem = stem.slice(0, -2);
+    } else if (stem.endsWith('a') || stem.endsWith('o') || stem.endsWith('e')) {
       stem = stem.slice(0, -1);
     } else {
       stem = stem.slice(0, -2);
@@ -1723,37 +1858,45 @@ function generateFallbackChallenges(rawWord: string): {
     stem = stem.slice(0, -1);
   }
 
-  const mMissing = entry.m.toLowerCase().startsWith(stem) ? entry.m.toLowerCase().slice(stem.length) : entry.m;
-  const dMissing = entry.d.toLowerCase().startsWith(stem) ? entry.d.toLowerCase().slice(stem.length) : entry.d;
-  const bMissing = entry.b.toLowerCase().startsWith(stem) ? entry.b.toLowerCase().slice(stem.length) : entry.b;
+  const buildChallenge = (
+    form: string,
+    prefix: string,
+    suffix: string,
+    defaultFallbackChar: string
+  ): RawCaseChallenge => {
+    const lower = form.toLowerCase();
+    let caseStem = stem;
+    let missing = '';
+
+    // If form starts with common stem and leaves at least 1 missing letter
+    if (lower.startsWith(caseStem) && lower.length > caseStem.length) {
+      missing = lower.slice(caseStem.length);
+    } else {
+      // Split safely into stem + ending so fullWord = caseStem + missing ALWAYS
+      const splitIdx = Math.max(1, lower.length - (lower.length > 4 ? 2 : 1));
+      caseStem = lower.slice(0, splitIdx);
+      missing = lower.slice(splitIdx) || defaultFallbackChar;
+    }
+
+    return {
+      prefix,
+      stem: caseStem,
+      missing,
+      suffix,
+      fullWord: form,
+      fullSentence: `${prefix}${form}${suffix}`,
+    };
+  };
 
   const prefixes = getSentencePrefixes(entry.gender);
+  const mianPrefix = `Gdzie jest ${prefixes.mianownikPrefix.toLowerCase().replace('tu jest ', '')} `;
+  const dopPrefix = `${prefixes.dopelniaczPrefix} `;
+  const bierPrefix = `${prefixes.biernikPrefix} `;
 
   return {
-    mianownik: {
-      prefix: `Gdzie jest ${prefixes.mianownikPrefix.toLowerCase().replace('tu jest ', '')} `,
-      stem,
-      missing: mMissing || 'a',
-      suffix: '?',
-      fullWord: entry.m,
-      fullSentence: `Gdzie jest ${prefixes.mianownikPrefix.toLowerCase().replace('tu jest ', '')} ${entry.m}?`,
-    },
-    dopelniacz: {
-      prefix: `${prefixes.dopelniaczPrefix} `,
-      stem,
-      missing: dMissing || 'i',
-      suffix: '!',
-      fullWord: entry.d,
-      fullSentence: `${prefixes.dopelniaczPrefix} ${entry.d}!`,
-    },
-    biernik: {
-      prefix: `${prefixes.biernikPrefix} `,
-      stem,
-      missing: bMissing || 'ę',
-      suffix: '.',
-      fullWord: entry.b,
-      fullSentence: `${prefixes.biernikPrefix} ${entry.b}.`,
-    },
+    mianownik: buildChallenge(entry.m, mianPrefix, '?', 'a'),
+    dopelniacz: buildChallenge(entry.d, dopPrefix, '!', 'i'),
+    biernik: buildChallenge(entry.b, bierPrefix, '.', 'ę'),
   };
 }
 
