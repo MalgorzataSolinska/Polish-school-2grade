@@ -169,9 +169,34 @@ export const DeclensionGame: React.FC<DeclensionGameProps> = ({ items, onComplet
   // Physical keyboard support for typing letters, backspace, and enter
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Never intercept keystrokes if user is typing in an input, textarea, or if an admin/modal dialog is open
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.tagName === 'SELECT' ||
+          target.isContentEditable ||
+          target.closest('input') ||
+          target.closest('textarea') ||
+          target.closest('[role="dialog"]'))
+      ) {
+        return;
+      }
+
+      // Check if any modal is currently visible on the page (e.g. Teacher Panel)
+      if (document.querySelector('[role="dialog"]')) {
+        return;
+      }
+
+      // Never intercept modifier keys (AltGr/Ctrl for Polish characters ą, ć, ę, ł, ń, ó, ś, ź, ż or shortcuts)
+      if (e.ctrlKey || e.metaKey || e.altKey) {
+        return;
+      }
+
       if (isFinished || !currentChallenge) return;
 
-      if (e.key === 'Backspace') {
+      if (e.key === 'Backspace' || e.key === 'Delete') {
         e.preventDefault();
         handleBackspace();
         return;

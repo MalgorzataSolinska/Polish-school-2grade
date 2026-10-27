@@ -102,6 +102,8 @@ export const StudentLoginModal: React.FC<StudentLoginModalProps> = ({
 
   return (
     <div
+      role="dialog"
+      aria-modal="true"
       className="fixed inset-0 z-50 bg-black/75 flex items-center justify-center p-3 sm:p-6 overflow-y-auto animate-fade-in"
       onClick={onClose}
     >

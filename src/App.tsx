@@ -206,7 +206,10 @@ export default function App() {
   };
 
   const handleAddDailyTask = async (newTask: DailyTask) => {
-    const updated = [newTask, ...allDailyTasks];
+    const exists = allDailyTasks.some((t) => t.id === newTask.id);
+    const updated = exists
+      ? allDailyTasks.map((t) => (t.id === newTask.id ? newTask : t))
+      : [newTask, ...allDailyTasks];
     setAllDailyTasks(updated);
     setDailyTask(newTask);
     await saveSchoolData({ dailyTasks: updated });
@@ -215,9 +218,7 @@ export default function App() {
   const handleEditDailyTask = async (updatedTask: DailyTask) => {
     const updated = allDailyTasks.map((t) => (t.id === updatedTask.id ? updatedTask : t));
     setAllDailyTasks(updated);
-    if (dailyTask?.id === updatedTask.id) {
-      setDailyTask(updatedTask);
-    }
+    setDailyTask(updatedTask);
     await saveSchoolData({ dailyTasks: updated });
   };
 

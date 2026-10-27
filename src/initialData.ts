@@ -159,6 +159,55 @@ export const INITIAL_DAILY_TASKS: DailyTask[] = [
       { id: 'cas-22-14', word: 'KUCHNIA', hint: 'Pyszne gotowanie w kuchni' },
     ],
   },
+  {
+    id: 'dt-2208-7',
+    date: 'Sobota, 22 Sierpnia 2026',
+    eventDateStr: 'Sobota, 22 Sierpnia 2026',
+    eventIsoDate: '2026-08-22',
+    topic: 'Rozpoczęcie Roku Szkolnego i Pierwsze Słówka',
+    title: '🧩 Przeciągnij i Dopasuj: Symbole i Legendy Polski',
+    description: 'Przeciągnij opis i upuść go na właściwy symbol, rzekę lub postać z polskiej legendy!',
+    type: 'matching',
+    starsReward: 15,
+    matching: [
+      {
+        id: 'm-22-1',
+        wordPl: 'Orzeł Biały',
+        description: 'Godło Polski – dumny biały ptak w złotej koronie na czerwonym tle.',
+        emoji: '🦅',
+      },
+      {
+        id: 'm-22-2',
+        wordPl: 'Flaga Polski',
+        description: 'Biało-czerwone barwy narodowe, biel oznacza czystość, a czerwień odwagę.',
+        emoji: '🇵🇱',
+      },
+      {
+        id: 'm-22-3',
+        wordPl: 'Syrenka Warszawska',
+        description: 'Legendarna postać z mieczem i tarczą, która czuwa i broni Warszawy nad Wisłą.',
+        emoji: '🧜‍♀️',
+      },
+      {
+        id: 'm-22-4',
+        wordPl: 'Smok Wawelski',
+        description: 'Potwór z krakowskiej legendy mieszkający w pieczarze pod Zamkiem na Wawelu.',
+        emoji: '🐉',
+      },
+      {
+        id: 'm-22-5',
+        wordPl: 'Rzeka Wisła',
+        description: 'Królowa polskich rzek, najdłuższa w Polsce, płynąca od gór Tatr do Bałtyku.',
+        emoji: '🌊',
+      },
+      {
+        id: 'm-22-6',
+        wordPl: 'Zamek Królewski na Wawelu',
+        description: 'Słynny zamek w Krakowie, historyczna siedziba dawnych królów polskich.',
+        emoji: '🏰',
+      },
+    ],
+  },
 
   // --- ZJAZD 2: SOBOTA, 29 SIERPNIA 2026 ---
   {
@@ -282,6 +331,49 @@ export const INITIAL_DAILY_TASKS: DailyTask[] = [
       { id: 'cas-29-7', word: 'ZESZYT', hint: 'Zeszyt w linie do pisania' },
     ],
   },
+  {
+    id: 'dt-2908-7',
+    date: 'Sobota, 29 Sierpnia 2026',
+    eventDateStr: 'Sobota, 29 Sierpnia 2026',
+    eventIsoDate: '2026-08-29',
+    topic: 'Alfabet i Wspomnienia z Wakacji: Pisanie i wypowiedzi ustne',
+    title: '🧩 Przeciągnij i Dopasuj: Szkoła i Wakacje',
+    description: 'Dopasuj opisy do wakacyjnych wspomnień oraz przedmiotów i przyborów w klasie!',
+    type: 'matching',
+    starsReward: 15,
+    matching: [
+      {
+        id: 'm-29-1',
+        wordPl: 'Podręcznik',
+        description: 'Książka, z której uczymy się czytać i poznajemy polskie słówka.',
+        emoji: '📚',
+      },
+      {
+        id: 'm-29-2',
+        wordPl: 'Piórnik',
+        description: 'Schowek na kredki, ołówki, linijkę i gumkę do ścierania.',
+        emoji: '✏️',
+      },
+      {
+        id: 'm-29-3',
+        wordPl: 'Morze Bałtyckie',
+        description: 'Polskie morze na północy, gdzie zbieramy muszelki i bursztyny.',
+        emoji: '🌊',
+      },
+      {
+        id: 'm-29-4',
+        wordPl: 'Polskie Tatry',
+        description: 'Najwyższe góry w Polsce z malowniczymi szlakami i szczytami.',
+        emoji: '⛰️',
+      },
+      {
+        id: 'm-29-5',
+        wordPl: 'Alfabet Polski',
+        description: 'Zbiór wszystkich polskich liter z wyjątkowymi znakami jak Ą, Ę, Ć, Ł, Ś, Ż, Ź.',
+        emoji: '🔤',
+      },
+    ],
+  },
 ];
 
 export const INITIAL_CLASS_SUMMARIES: ClassSummary[] = [
@@ -344,8 +436,8 @@ export const INITIAL_CLASS_SUMMARIES: ClassSummary[] = [
 export const INITIAL_WORKSHEETS: Worksheet[] = [
   {
     id: 'ws-1',
-    title: '✏️ Ortografia Klasy 2: Ż czy RZ, Ó czy U',
     category: 'polski',
+    title: '✏️ Ortografia Klasy 2: Ż czy RZ, Ó czy U',
     description: 'Karta pracy z lukami do uzupełnienia. Zasady pisowni, rymowanki i wesołe rysunki do pokolorowania.',
     estimatedTime: '15 min',
     previewLines: [
@@ -359,8 +451,8 @@ export const INITIAL_WORKSHEETS: Worksheet[] = [
   },
   {
     id: 'ws-2',
+    category: 'lamiglowki',
     title: '📖 Czytanie ze Zrozumieniem: "Księżycowy Piesek"',
-    category: 'czytanie',
     description: 'Ciekawa historyjka z dużą czcionką ułatwiającą czytanie oraz 5 pytań z opcjami odpowiedzi.',
     estimatedTime: '20 min',
     previewLines: [

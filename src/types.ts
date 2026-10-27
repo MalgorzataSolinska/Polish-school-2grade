@@ -26,7 +26,7 @@ export interface Announcement {
   icon?: string;
 }
 
-export type GameType = 'spelling' | 'secret_word' | 'syllables' | 'wordsearch' | 'pronoun' | 'cases';
+export type GameType = 'spelling' | 'secret_word' | 'syllables' | 'wordsearch' | 'pronoun' | 'cases' | 'matching';
 
 export interface WordSearchData {
   words: { pl: string; en: string }[];
@@ -35,10 +35,12 @@ export interface WordSearchData {
 
 export interface MatchingItem {
   id: string;
-  wordPl: string;
+  wordPl: string; // Tytuł / Hasło (np. "Orzeł Biały", "Wisła", "Wawel")
   wordEn?: string;
-  emoji: string;
-  category: string;
+  description?: string; // Opis do dopasowania (np. "Godło Polski - dumny biały ptak w złotej koronie na czerwonym tle")
+  emoji?: string; // np. "🦅"
+  imageUrl?: string; // Opcjonalny adres URL zdjęcia
+  category?: string; // np. "Symbole Polski", "Przyroda", "Historia"
 }
 
 export interface StoryQuestion {

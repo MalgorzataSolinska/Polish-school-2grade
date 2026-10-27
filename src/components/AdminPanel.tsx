@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Announcement, DailyTask, ClassSummary, Worksheet, FeedbackMessage, ClassEvent, GameType, SpellingItem, MatchingItem, StoryQuestion, GeographyQuizQuestion } from '../types';
 import { playSuccessSound } from '../utils/audio';
-import { Lock, Megaphone, Calendar, FileText, Mail, Plus, ShieldCheck, X, Upload, KeyRound, Trash2, BookOpen, Gamepad2, Sparkles, CheckCircle2, Pencil, Edit, Layers, Check, RefreshCw } from 'lucide-react';
+import { Lock, Megaphone, Calendar, FileText, Mail, Plus, ShieldCheck, X, Upload, KeyRound, Trash2, BookOpen, Gamepad2, Sparkles, CheckCircle2, Pencil, Edit, Layers, Check, RefreshCw, Image as ImageIcon, AlertTriangle, Link as LinkIcon } from 'lucide-react';
 import { getEmojiForWord, cleanWord, parseWordList } from '../utils/wordHelpers';
+import { isImageUrl, normalizeImageUrl, compressAndReadImage } from '../utils/imageHelpers';
 import { RichTextEditor } from './RichTextEditor';
 import { FormattedText } from './FormattedText';
 
@@ -107,6 +108,186 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [taskSaturdayDate, setTaskSaturdayDate] = useState('Sobota, 29 Sierpnia 2026');
   const [taskTopic, setTaskTopic] = useState('');
 
+  // Dedicated state for Matching Game (taskType === 'matching')
+  const [matchingPairs, setMatchingPairs] = useState<MatchingItem[]>([
+    {
+      id: 'm-1',
+      wordPl: 'Orzeł Biały',
+      description: 'Godło Polski – dumny biały ptak w złotej koronie na czerwonym tle.',
+      emoji: '🦅',
+      category: 'Symbole Narodowe',
+    },
+    {
+      id: 'm-2',
+      wordPl: 'Flaga Polski',
+      description: 'Biało-czerwone barwy narodowe, powiewające podczas świąt i uroczystości.',
+      emoji: '🇵🇱',
+      category: 'Symbole Narodowe',
+    },
+    {
+      id: 'm-3',
+      wordPl: 'Syrenka Warszawska',
+      description: 'Legendarna postać z mieczem i tarczą, która czuwa i broni stolicy Polski nad Wisłą.',
+      emoji: '🧜‍♀️',
+      category: 'Legendy',
+    },
+    {
+      id: 'm-4',
+      wordPl: 'Smok Wawelski',
+      description: 'Potwór z krakowskiej legendy mieszkający w pieczarze pod Zamkiem na Wawelu.',
+      emoji: '🐉',
+      category: 'Legendy',
+    },
+    {
+      id: 'm-5',
+      wordPl: 'Rzeka Wisła',
+      description: 'Królowa polskich rzek, najdłuższa rzeka w Polsce płynąca od Tatr aż do Bałtyku.',
+      emoji: '🌊',
+      category: 'Geografia',
+    },
+  ]);
+  const [quickPairText, setQuickPairText] = useState('');
+  const [showQuickPairText, setShowQuickPairText] = useState(false);
+  const [imageUploadStatus, setImageUploadStatus] = useState<string | null>(null);
+
+  const handleAddMatchingPair = () => {
+    setMatchingPairs((prev) => [
+      ...prev,
+      {
+        id: `m-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+        wordPl: '',
+        description: '',
+        emoji: '⭐',
+        imageUrl: undefined,
+        category: 'Lekcja',
+      },
+    ]);
+  };
+
+  const handleImageUploadForPair = async (pIdx: number, file: File) => {
+    try {
+      setImageUploadStatus(`Wgrywanie i optymalizacja zdjęcia dla pary #${pIdx + 1}...`);
+      const dataUrl = await compressAndReadImage(file, 600, 0.85);
+      setMatchingPairs((prev) => {
+        const next = [...prev];
+        next[pIdx] = {
+          ...next[pIdx],
+          imageUrl: dataUrl,
+        };
+        return next;
+      });
+      setImageUploadStatus(`✅ Zdjęcie dla pary #${pIdx + 1} zostało pomyślnie wgrane!`);
+      playSuccessSound();
+      setTimeout(() => setImageUploadStatus(null), 3000);
+    } catch (err) {
+      console.error('Image upload failed:', err);
+      setImageUploadStatus('❌ Nie udało się przetworzyć pliku graficznego. Spróbuj innego pliku PNG/JPG.');
+      setTimeout(() => setImageUploadStatus(null), 4000);
+    }
+  };
+
+  const handleUpdateMatchingPair = (index: number, field: keyof MatchingItem, val: string) => {
+    setMatchingPairs((prev) => {
+      const next = [...prev];
+      let updatedVal = val;
+      if (field === 'imageUrl') {
+        updatedVal = normalizeImageUrl(val);
+      }
+      if (field === 'emoji' && isImageUrl(val)) {
+        // User pasted URL into emoji field - auto transfer to imageUrl!
+        next[index] = {
+          ...next[index],
+          imageUrl: normalizeImageUrl(val),
+          emoji: next[index].emoji && !isImageUrl(next[index].emoji) ? next[index].emoji : getEmojiForWord(next[index].wordPl) || '⭐',
+        };
+        return next;
+      }
+      next[index] = { ...next[index], [field]: updatedVal };
+      if (field === 'wordPl' && (!next[index].emoji || next[index].emoji === '⭐')) {
+        const autoEmoji = getEmojiForWord(val);
+        if (autoEmoji) next[index].emoji = autoEmoji;
+      }
+      return next;
+    });
+  };
+
+  const handleRemoveMatchingPair = (index: number) => {
+    setMatchingPairs((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleLoadMatchingPreset = (presetName: 'symbols' | 'legends' | 'school' | 'autumn') => {
+    if (presetName === 'symbols') {
+      setTaskTitle('🧩 Przeciągnij i Dopasuj: Symbole Polski');
+      setTaskDescription('Przeciągnij opis i dopasuj go do godła, flagi, hymnu lub rzeki!');
+      setMatchingPairs([
+        { id: 'p-1', wordPl: 'Orzeł Biały', description: 'Godło Polski – dumny biały ptak w złotej koronie na czerwonym tle.', emoji: '🦅', category: 'Symbole' },
+        { id: 'p-2', wordPl: 'Flaga Polski', description: 'Biało-czerwone barwy narodowe powiewające na świętach.', emoji: '🇵🇱', category: 'Symbole' },
+        { id: 'p-3', wordPl: 'Mazurek Dąbrowskiego', description: 'Oficjalny hymn narodowy Polski śpiewany z szacunkiem na baczność.', emoji: '🎵', category: 'Symbole' },
+        { id: 'p-4', wordPl: 'Rzeka Wisła', description: 'Królowa polskich rzek, najdłuższa rzeka w Polsce płynąca do Bałtyku.', emoji: '🌊', category: 'Geografia' },
+        { id: 'p-5', wordPl: 'Warszawa', description: 'Stolica i największe miasto Polski leżące w centrum kraju.', emoji: '🏰', category: 'Geografia' },
+      ]);
+    } else if (presetName === 'legends') {
+      setTaskTitle('🧩 Przeciągnij i Dopasuj: Polskie Legendy');
+      setTaskDescription('Dopasuj opisy do postaci z polskich legend i baśni!');
+      setMatchingPairs([
+        { id: 'l-1', wordPl: 'Smok Wawelski', description: 'Groźny potwór ze Smoczej Jamy w Krakowie, pokonany przez Szewczyka Dratewkę.', emoji: '🐉', category: 'Legendy' },
+        { id: 'l-2', wordPl: 'Syrenka Warszawska', description: 'Pół-kobieta, pół-ryba z mieczem i tarczą, obrończyni stolicy Polski.', emoji: '🧜‍♀️', category: 'Legendy' },
+        { id: 'l-3', wordPl: 'Złota Kaczka', description: 'Mieszkała w lochach zamku Ostrogskich w Warszawie i obiecywała bogactwa.', emoji: '🦆', category: 'Legendy' },
+        { id: 'l-4', wordPl: 'Pan Twardowski', description: 'Szlachcic-czarnoksiężnik z legendy, który wylądował na Księżycu na kogucie.', emoji: '🌙', category: 'Legendy' },
+      ]);
+    } else if (presetName === 'school') {
+      setTaskTitle('🧩 Przeciągnij i Dopasuj: Szkoła i Klasa');
+      setTaskDescription('Dopasuj opisy do przyborów szkolnych i przedmiotów w klasie!');
+      setMatchingPairs([
+        { id: 's-1', wordPl: 'Piórnik', description: 'Schowek na ołówki, kredki, linijkę i gumkę do ścierania.', emoji: '✏️', category: 'Przybory' },
+        { id: 's-2', wordPl: 'Podręcznik', description: 'Książka, z której czytamy i uczymy się języka polskiego.', emoji: '📚', category: 'Przybory' },
+        { id: 's-3', wordPl: 'Zeszyt', description: 'Zapisujemy w nim starannie nowe litery, słówka i zdania.', emoji: '📓', category: 'Przybory' },
+        { id: 's-4', wordPl: 'Plecak', description: 'Pakujemy do niego książki, zeszyty i drugie śniadanie.', emoji: '🎒', category: 'Przybory' },
+        { id: 's-5', wordPl: 'Tablica', description: 'Duża powierzchnia w klasie, na której nauczycielka pisze kredą.', emoji: '👩‍🏫', category: 'Klasa' },
+      ]);
+    } else if (presetName === 'autumn') {
+      setTaskTitle('🧩 Przeciągnij i Dopasuj: Jesień i Przyroda');
+      setTaskDescription('Dopasuj opisy do jesiennych darów lasu i przyrody!');
+      setMatchingPairs([
+        { id: 'a-1', wordPl: 'Kasztan', description: 'Błyszczący brązowy owoc drzewa ukryty w kolczastej zielonej łupinie.', emoji: '🌰', category: 'Przyroda' },
+        { id: 'a-2', wordPl: 'Jarzębina', description: 'Czerwone korale na gałązkach, przysmak leśnych ptaków jesienią.', emoji: '🍒', category: 'Przyroda' },
+        { id: 'a-3', wordPl: 'Jeż', description: 'Małe pożyteczne zwierzątko z kolcami, które szykuje się do snu zimowego.', emoji: '🦔', category: 'Zwierzęta' },
+        { id: 'a-4', wordPl: 'Borowik', description: 'Król polskich grzybów z brązowym kapeluszem rosnący w lesie.', emoji: '🍄', category: 'Grzyby' },
+        { id: 'a-5', wordPl: 'Kolorowe Liście', description: 'Złote, żółte i czerwone liście, które jesienią spadają z drzew.', emoji: '🍁', category: 'Przyroda' },
+      ]);
+    }
+  };
+
+  const handleApplyQuickPairText = () => {
+    if (!quickPairText.trim()) return;
+    const lines = quickPairText.split('\n').map((l) => l.trim()).filter((l) => l.length > 0);
+    const parsed: MatchingItem[] = lines.map((line, idx) => {
+      const parts = line.split('|').map((p) => p.trim());
+      const wordPl = parts[0] || `Hasło ${idx + 1}`;
+      const description = parts[1] || `Opis dla ${wordPl}`;
+      const rawThird = parts[2] || '';
+      let emoji = rawThird;
+      let imageUrl: string | undefined = undefined;
+      if (isImageUrl(rawThird)) {
+        imageUrl = normalizeImageUrl(rawThird);
+        emoji = getEmojiForWord(wordPl) || '⭐';
+      }
+      return {
+        id: `p-${idx}-${Date.now()}`,
+        wordPl,
+        description,
+        emoji: emoji || getEmojiForWord(wordPl) || '⭐',
+        imageUrl,
+        category: 'Dopasowywanie',
+      };
+    });
+    if (parsed.length > 0) {
+      setMatchingPairs(parsed);
+      setShowQuickPairText(false);
+      setQuickPairText('');
+    }
+  };
+
   // Calendar Event Form State
   const [evDateStr, setEvDateStr] = useState('Sobota,  2026');
   const [evIsoDate, setEvIsoDate] = useState('2026-08-22');
@@ -179,6 +360,38 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     }
     setTaskWordsInput(words);
 
+    if (task.matching && task.matching.length > 0) {
+      setMatchingPairs(
+        task.matching.map((m, idx) => {
+          let img = m.imageUrl ? normalizeImageUrl(m.imageUrl) : undefined;
+          let em = m.emoji;
+          if (!img && em && isImageUrl(em)) {
+            img = normalizeImageUrl(em);
+            em = undefined;
+          }
+          return {
+            id: m.id || `m-${idx}`,
+            wordPl: m.wordPl,
+            wordEn: m.wordEn,
+            description: m.description || '',
+            emoji: em || getEmojiForWord(m.wordPl) || '⭐',
+            imageUrl: img,
+            category: m.category || 'Wiedza',
+          };
+        })
+      );
+    } else if (task.spelling && task.spelling.length > 0) {
+      setMatchingPairs(
+        task.spelling.map((s, idx) => ({
+          id: s.id || `m-${idx}`,
+          wordPl: s.word,
+          description: s.hint || `Opis dla hasła ${s.word}`,
+          emoji: s.emoji || getEmojiForWord(s.word) || '⭐',
+          category: 'Słówka Lekcyjne',
+        }))
+      );
+    }
+
     // Scroll form into view
     setTimeout(() => {
       document.getElementById('admin-game-form')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -192,6 +405,43 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     setTaskWordsInput('WAKACJE, SŁOŃCE, MORZE, GÓRY, ALFABET, SZKOŁA');
     setTaskSaturdayDate('Sobota, 29 Sierpnia 2026');
     setTaskTopic('');
+    setMatchingPairs([
+      {
+        id: 'm-1',
+        wordPl: 'Orzeł Biały',
+        description: 'Godło Polski – dumny biały ptak w złotej koronie na czerwonym tle.',
+        emoji: '🦅',
+        category: 'Symbole Narodowe',
+      },
+      {
+        id: 'm-2',
+        wordPl: 'Flaga Polski',
+        description: 'Biało-czerwone barwy narodowe, powiewające podczas świąt i uroczystości.',
+        emoji: '🇵🇱',
+        category: 'Symbole Narodowe',
+      },
+      {
+        id: 'm-3',
+        wordPl: 'Syrenka Warszawska',
+        description: 'Legendarna postać z mieczem i tarczą, która czuwa i broni stolicy Polski nad Wisłą.',
+        emoji: '🧜‍♀️',
+        category: 'Legendy',
+      },
+      {
+        id: 'm-4',
+        wordPl: 'Smok Wawelski',
+        description: 'Potwór z krakowskiej legendy mieszkający w pieczarze pod Zamkiem na Wawelu.',
+        emoji: '🐉',
+        category: 'Legendy',
+      },
+      {
+        id: 'm-5',
+        wordPl: 'Rzeka Wisła',
+        description: 'Królowa polskich rzek, najdłuższa rzeka w Polsce płynąca od Tatr aż do Bałtyku.',
+        emoji: '🌊',
+        category: 'Geografia',
+      },
+    ]);
   };
 
   // Sync initial tab, Saturday filter, and task to edit when modal opens or props change
@@ -367,7 +617,40 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       starsReward: 15,
     };
 
-    if (taskType === 'spelling' || taskType === 'secret_word' || taskType === 'syllables' || taskType === 'pronoun' || taskType === 'cases') {
+    if (taskType === 'matching') {
+      const validPairs = matchingPairs
+        .filter((p) => (p.wordPl && p.wordPl.trim().length > 0) || (p.description && p.description.trim().length > 0))
+        .map((p, idx) => {
+          let img = p.imageUrl?.trim() || undefined;
+          let em = p.emoji?.trim() || undefined;
+          if (!img && em && isImageUrl(em)) {
+            img = normalizeImageUrl(em);
+            em = undefined;
+          }
+          return {
+            id: p.id || `match-${idx}-${Date.now()}`,
+            wordPl: p.wordPl.trim() || `Hasło ${idx + 1}`,
+            description: p.description?.trim() || `Opis dla hasła ${p.wordPl}`,
+            emoji: em || getEmojiForWord(p.wordPl) || '⭐',
+            imageUrl: img ? normalizeImageUrl(img) : undefined,
+            category: p.category?.trim() || 'Dopasowywanie',
+          };
+        });
+
+      const finalPairs = validPairs.length > 0 ? validPairs : [
+        { id: `m-1-${Date.now()}`, wordPl: 'Orzeł Biały', description: 'Godło Polski – dumny biały ptak w złotej koronie na czerwonym tle.', emoji: '🦅', category: 'Symbole' },
+        { id: `m-2-${Date.now()}`, wordPl: 'Flaga Polski', description: 'Biało-czerwone barwy narodowe, powiewające podczas świąt.', emoji: '🇵🇱', category: 'Symbole' },
+        { id: `m-3-${Date.now()}`, wordPl: 'Syrenka Warszawska', description: 'Legendarna postać z mieczem i tarczą, obrończyni stolicy Polski.', emoji: '🧜‍♀️', category: 'Legendy' },
+      ];
+
+      newTask.matching = finalPairs;
+      newTask.spelling = finalPairs.map((p) => ({
+        id: p.id,
+        word: p.wordPl.toUpperCase(),
+        hint: p.description || '',
+        emoji: p.emoji,
+      }));
+    } else if (taskType === 'spelling' || taskType === 'secret_word' || taskType === 'syllables' || taskType === 'pronoun' || taskType === 'cases') {
       const spellingItems: SpellingItem[] = rawWords.map((w, idx) => ({
         id: `sp-${idx}-${Date.now()}`,
         word: w,
@@ -620,7 +903,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+    <div
+      role="dialog"
+      aria-modal="true"
+      id="admin-panel-modal"
+      className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-3 sm:p-6 overflow-y-auto"
+    >
       <div className="bg-white w-full max-w-5xl rounded-3xl shadow-[10px_10px_0px_black] border-4 border-black overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header Bar */}
         <div className="bg-[#FF4F81] text-white p-4 border-b-4 border-black flex items-center justify-between shrink-0">
@@ -873,17 +1161,30 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 <div className="space-y-6">
                   {/* Game Notification Banner */}
                   {gameNotification && (
-                    <div className="p-4 bg-emerald-500 text-white rounded-2xl border-3 border-black shadow-[4px_4px_0px_black] font-black text-xs flex items-center justify-between animate-bounce">
+                    <div className="p-4 bg-emerald-500 text-white rounded-2xl border-3 border-black shadow-[4px_4px_0px_black] font-black text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-fade-in">
                       <div className="flex items-center gap-2">
                         <CheckCircle2 className="w-5 h-5 shrink-0" />
                         <span>{gameNotification}</span>
                       </div>
-                      <button
-                        onClick={() => setGameNotification(null)}
-                        className="text-white hover:text-black ml-2 text-sm font-black cursor-pointer"
-                      >
-                        ✕
-                      </button>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setGameNotification(null);
+                            onClose();
+                          }}
+                          className="bg-white text-black hover:bg-yellow-200 px-3 py-1.5 rounded-xl border-2 border-black font-black text-xs shadow-[2px_2px_0px_black] active:scale-95 transition cursor-pointer flex items-center gap-1.5"
+                        >
+                          <span>🎮 Zobacz tę grę na żywo</span>
+                        </button>
+                        <button
+                          onClick={() => setGameNotification(null)}
+                          className="text-white hover:text-black ml-1 text-sm font-black cursor-pointer p-1"
+                          title="Zamknij powiadomienie"
+                        >
+                          ✕
+                        </button>
+                      </div>
                     </div>
                   )}
 
@@ -1028,7 +1329,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                           <label className="block text-[11px] font-black uppercase text-black mb-1">Rodzaj gry do wyboru:</label>
                           <select
                             value={taskType}
-                            onChange={(e) => setTaskType(e.target.value as GameType)}
+                            onChange={(e) => {
+                              const newType = e.target.value as GameType;
+                              setTaskType(newType);
+                              if (newType === 'matching') {
+                                if (!taskTitle || taskTitle.startsWith('🔤') || taskTitle.startsWith('🎯') || taskTitle.startsWith('📖')) {
+                                  setTaskTitle('🧩 Przeciągnij i Dopasuj: Symbole i Wiedza');
+                                }
+                                if (!taskDescription) {
+                                  setTaskDescription('Przeciągnij opis i dopasuj go do właściwego tytułu lub zdjęcia!');
+                                }
+                              }
+                            }}
                             className="w-full px-3 py-2 rounded-xl border-2 border-black text-xs font-black bg-white"
                           >
                             <option value="spelling">🔤 Układanie Słów z Liter</option>
@@ -1037,6 +1349,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                             <option value="wordsearch">🔍 Wykreślanka Słów</option>
                             <option value="pronoun">Ten, Ta czy To? (Zaimki Wskazujące)</option>
                             <option value="cases">📖 Odmiana przez Przypadki (Uzupełnij brakujące litery)</option>
+                            <option value="matching">🧩 Przeciągnij i Dopasuj (Opis do Tytułu lub Zdjęcia)</option>
                           </select>
                         </div>
                       </div>
@@ -1048,27 +1361,316 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                           value={taskDescription}
                           onChange={(e) => setTaskDescription(e.target.value)}
                           required
-                          placeholder=""
+                          placeholder="np. Przeciągnij opis na odpowiednią kartę z symbolem lub hasłem"
                           className="w-full px-3 py-2 rounded-xl border-2 border-black text-xs font-bold bg-yellow-50"
                         />
                       </div>
 
-                      <div>
-                        <label className="block text-[11px] font-black uppercase text-black mb-1">
-                          Słowa do przećwiczenia w grze (oddzielone przecinkami):
-                        </label>
-                        <input
-                          type="text"
-                          value={taskWordsInput}
-                          onChange={(e) => setTaskWordsInput(e.target.value)}
-                          required
-                          placeholder="WAKACJE, SŁOŃCE, MORZE, GÓRY, ALFABET, SZKOŁA"
-                          className="w-full px-3 py-2 rounded-xl border-2 border-black text-xs font-mono font-bold bg-yellow-50"
-                        />
-                        <p className="text-[10px] text-gray-800 font-bold mt-1">
-                          Wpisz słowa oddzielone przecinkami (np. <i>WAKACJE, SŁOŃCE, MORZE, GÓRY</i>).
-                        </p>
-                      </div>
+                      {/* Matching Game Pairs Editor (when taskType === 'matching') */}
+                      {taskType === 'matching' ? (
+                        <div className="p-4 bg-orange-50/80 rounded-2xl border-2 border-black space-y-3">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b-2 border-black/20 pb-2">
+                            <div>
+                              <label className="block text-xs font-black uppercase text-black">
+                                🧩 Pary do dopasowania (Tytuł + Opis + Zdjęcie/Emoji):
+                              </label>
+                              <p className="text-[10px] text-gray-800 font-bold">
+                                Dziecko będzie przeciągać opis i upuszczać go na pasujący tytuł lub obrazek.
+                              </p>
+                            </div>
+
+                            {/* Preset Buttons */}
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="text-[10px] font-black text-gray-600 uppercase">Gotowe szablony:</span>
+                              <button
+                                type="button"
+                                onClick={() => handleLoadMatchingPreset('symbols')}
+                                className="bg-yellow-200 hover:bg-yellow-300 text-black border border-black px-2 py-0.5 rounded-lg text-[10px] font-black cursor-pointer shadow-[1px_1px_0px_black]"
+                              >
+                                🇵🇱 Symbole
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleLoadMatchingPreset('legends')}
+                                className="bg-yellow-200 hover:bg-yellow-300 text-black border border-black px-2 py-0.5 rounded-lg text-[10px] font-black cursor-pointer shadow-[1px_1px_0px_black]"
+                              >
+                                🐉 Legendy
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleLoadMatchingPreset('school')}
+                                className="bg-yellow-200 hover:bg-yellow-300 text-black border border-black px-2 py-0.5 rounded-lg text-[10px] font-black cursor-pointer shadow-[1px_1px_0px_black]"
+                              >
+                                🏫 Szkoła
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleLoadMatchingPreset('autumn')}
+                                className="bg-yellow-200 hover:bg-yellow-300 text-black border border-black px-2 py-0.5 rounded-lg text-[10px] font-black cursor-pointer shadow-[1px_1px_0px_black]"
+                              >
+                                🍂 Jesień
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Quick Text Bulk Input Toggle */}
+                          <div>
+                            <button
+                              type="button"
+                              onClick={() => setShowQuickPairText(!showQuickPairText)}
+                              className="text-[11px] font-black text-blue-700 underline uppercase cursor-pointer hover:text-blue-900"
+                            >
+                              {showQuickPairText ? '✕ Zamknij szybkie wklejanie tekstem' : '📋 Wklej pary zbiorczo tekstem (Hasło | Opis | Emoji)'}
+                            </button>
+
+                            {showQuickPairText && (
+                              <div className="mt-2 p-3 bg-white rounded-xl border-2 border-black space-y-2">
+                                <p className="text-[10px] text-gray-700 font-bold">
+                                  Wklej każdą parę w osobnej linii w formacie: <code>Tytuł | Opis do przeciągnięcia | Emoji/Zdjęcie</code>
+                                </p>
+                                <textarea
+                                  value={quickPairText}
+                                  onChange={(e) => setQuickPairText(e.target.value)}
+                                  rows={4}
+                                  placeholder={`Orzeł Biały | Godło Polski – dumny biały ptak w złotej koronie na czerwonym tle | 🦅\nFlaga Polski | Biało-czerwone barwy narodowe powiewające podczas świąt | 🇵🇱\nWisła | Najdłuższa rzeka w Polsce płynąca do Morza Bałtyckiego | 🌊`}
+                                  className="w-full p-2 text-xs font-mono border border-black rounded-lg bg-yellow-50"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={handleApplyQuickPairText}
+                                  className="bg-emerald-500 hover:bg-emerald-600 text-white font-black px-3 py-1.5 rounded-lg text-xs uppercase border border-black shadow-[2px_2px_0px_black] cursor-pointer"
+                                >
+                                  Zastosuj Wklejone Pary ✨
+                                </button>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Image upload status toast notification */}
+                          {imageUploadStatus && (
+                            <div className="py-2 px-3 rounded-xl border-2 border-black bg-emerald-100 text-emerald-950 font-black text-xs shadow-[2px_2px_0px_black] animate-bounce-short flex items-center gap-2">
+                              <Sparkles className="w-4 h-4 text-emerald-700 shrink-0" />
+                              <span>{imageUploadStatus}</span>
+                            </div>
+                          )}
+
+                          {/* Info Helper on Photos */}
+                          <div className="p-2.5 bg-blue-50 border-2 border-blue-400 rounded-xl text-[11px] text-blue-950 font-bold flex items-start gap-2">
+                            <ImageIcon className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+                            <div>
+                              <span><b>Jak najlepiej dodawać zdjęcia?</b> Linki ze stron takich jak Google Grafika czy Pinterest często blokują bezpośrednie wyświetlanie na innych stronach. Najwygodniejsza i w 100% niezawodna metoda to kliknięcie <b>📁 Wgraj z dysku</b> — zdjęcie zapisze się bezpośrednio w grze!</span>
+                            </div>
+                          </div>
+
+                          {/* Individual Pairs List */}
+                          <div className="space-y-4 max-h-[560px] overflow-y-auto pr-1">
+                            {matchingPairs.map((pair, pIdx) => (
+                              <div
+                                key={pair.id || `pair-${pIdx}`}
+                                className="p-4 bg-white rounded-2xl border-3 border-black shadow-[3px_3px_0px_black] space-y-3 transition hover:border-[#FF4F81]"
+                              >
+                                <div className="flex items-center justify-between gap-2 border-b-2 border-black/10 pb-2">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-[11px] font-black uppercase text-black bg-[#FFD700] px-2.5 py-0.5 rounded-lg border-2 border-black shadow-[1px_1px_0px_black]">
+                                      Para #{pIdx + 1}
+                                    </span>
+                                    {pair.imageUrl ? (
+                                      <span className="text-[10px] font-black text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-md border border-emerald-400 flex items-center gap-1">
+                                        <Check className="w-3 h-3 text-emerald-600" />
+                                        <span>Zdjęcie dodane</span>
+                                      </span>
+                                    ) : (
+                                      <span className="text-[10px] font-bold text-gray-600">
+                                        Symbol: {pair.emoji || getEmojiForWord(pair.wordPl) || '⭐'}
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  {matchingPairs.length > 2 && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRemoveMatchingPair(pIdx)}
+                                      className="text-rose-600 hover:text-rose-800 text-[11px] font-black uppercase cursor-pointer flex items-center gap-1 hover:bg-rose-50 px-2 py-1 rounded-lg border border-transparent hover:border-rose-400 transition"
+                                      title="Usuń tę parę"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                      <span>Usuń parę</span>
+                                    </button>
+                                  )}
+                                </div>
+
+                                {/* Row 1: Title / Target */}
+                                <div>
+                                  <label className="block text-[11px] font-black uppercase text-black mb-1 flex items-center justify-between">
+                                    <span>Tytuł / Hasło (cel, na który uczeń upuści opis):</span>
+                                    <span className="text-[10px] text-gray-500 font-bold">np. Orzeł Biały, Wawel, Podręcznik</span>
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={pair.wordPl}
+                                    onChange={(e) => handleUpdateMatchingPair(pIdx, 'wordPl', e.target.value)}
+                                    placeholder="np. Orzeł Biały"
+                                    required
+                                    className="w-full px-3 py-2 rounded-xl border-2 border-black text-sm font-black bg-yellow-50 focus:bg-white focus:ring-2 focus:ring-[#FF4F81] focus:outline-none"
+                                  />
+                                </div>
+
+                                {/* Row 2: Description (Large Expandable Textarea) */}
+                                <div>
+                                  <label className="block text-[11px] font-black uppercase text-black mb-1 flex items-center justify-between">
+                                    <span className="text-[#FF4F81]">Opis (tekst do przeciągania przez dziecko):</span>
+                                    <span className="text-[10px] text-gray-500 font-bold">Rozszerzalne okienko ↘</span>
+                                  </label>
+                                  <textarea
+                                    value={pair.description || ''}
+                                    onChange={(e) => handleUpdateMatchingPair(pIdx, 'description', e.target.value)}
+                                    placeholder="Wpisz treść opisu lub definicji, np. Godło Polski – dumny biały ptak w złotej koronie na czerwonym tle."
+                                    required
+                                    rows={3}
+                                    className="w-full p-3 rounded-xl border-2 border-black text-xs sm:text-sm font-bold bg-yellow-50 focus:bg-white focus:ring-2 focus:ring-[#FF4F81] focus:outline-none leading-relaxed resize-y min-h-[72px]"
+                                  />
+                                </div>
+
+                                {/* Row 3: Image / Emoji Controls */}
+                                <div className="p-3 bg-amber-50/70 rounded-xl border-2 border-black/30 space-y-2">
+                                  <span className="block text-[11px] font-black uppercase text-black flex items-center gap-1.5">
+                                    <ImageIcon className="w-3.5 h-3.5 text-[#4F81FF]" />
+                                    <span>Ilustracja lub Symbol dla tej pary:</span>
+                                  </span>
+
+                                  {pair.imageUrl ? (
+                                    /* Active Image Preview with controls */
+                                    <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-2.5 bg-white rounded-xl border-2 border-black">
+                                      <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl border-2 border-black bg-gray-100 overflow-hidden shrink-0 flex items-center justify-center shadow-[2px_2px_0px_black] relative">
+                                        <img
+                                          src={pair.imageUrl}
+                                          alt={pair.wordPl || 'Podgląd'}
+                                          referrerPolicy="no-referrer"
+                                          crossOrigin="anonymous"
+                                          className="w-full h-full object-cover"
+                                          onError={(e) => {
+                                            (e.target as HTMLElement).style.display = 'none';
+                                            const badge = (e.target as HTMLElement).parentElement?.querySelector('.img-error-badge');
+                                            if (badge) (badge as HTMLElement).style.display = 'flex';
+                                          }}
+                                        />
+                                        <div className="img-error-badge hidden absolute inset-0 bg-rose-100 text-rose-900 text-[9px] font-black flex-col items-center justify-center p-1 text-center">
+                                          <AlertTriangle className="w-4 h-4 text-rose-600 mb-0.5" />
+                                          <span>Błąd linku</span>
+                                        </div>
+                                      </div>
+
+                                      <div className="flex-1 min-w-0 space-y-1">
+                                        <div className="flex items-center gap-1 text-xs font-black text-emerald-800">
+                                          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                                          <span>Zdjęcie przypisane i gotowe</span>
+                                        </div>
+                                        <p className="text-[10px] text-gray-600 font-mono truncate max-w-sm">
+                                          {pair.imageUrl.startsWith('data:') ? 'Plik wgrany z dysku (zoptymalizowany)' : pair.imageUrl}
+                                        </p>
+                                        <div className="flex items-center gap-2 pt-1 flex-wrap">
+                                          <label className="text-[10px] bg-yellow-200 hover:bg-yellow-300 text-black px-2.5 py-1 rounded-lg border border-black font-black cursor-pointer inline-flex items-center gap-1 active:scale-95 transition shadow-[1px_1px_0px_black]">
+                                            <Upload className="w-3 h-3" />
+                                            <span>Wgraj inne zdjęcie z dysku</span>
+                                            <input
+                                              type="file"
+                                              accept="image/*"
+                                              className="hidden"
+                                              onChange={(e) => {
+                                                const file = e.target.files?.[0];
+                                                if (file) handleImageUploadForPair(pIdx, file);
+                                              }}
+                                            />
+                                          </label>
+                                          <button
+                                            type="button"
+                                            onClick={() => handleUpdateMatchingPair(pIdx, 'imageUrl', '')}
+                                            className="text-[10px] text-rose-700 hover:text-rose-900 font-black cursor-pointer underline"
+                                          >
+                                            Usuń zdjęcie ✕
+                                          </button>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    /* Image selection: Direct Upload OR Link OR Emoji */
+                                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-2.5 items-center">
+                                      {/* Option A: Direct File Upload Button */}
+                                      <div className="lg:col-span-5">
+                                        <label className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-emerald-500 hover:bg-emerald-600 text-white border-2 border-black rounded-xl text-xs font-black cursor-pointer shadow-[2px_2px_0px_black] active:scale-95 transition">
+                                          <Upload className="w-4 h-4 text-white" />
+                                          <span>📁 Wgraj zdjęcie z dysku / tel.</span>
+                                          <input
+                                            type="file"
+                                            accept="image/*"
+                                            className="hidden"
+                                            onChange={(e) => {
+                                              const file = e.target.files?.[0];
+                                              if (file) handleImageUploadForPair(pIdx, file);
+                                            }}
+                                          />
+                                        </label>
+                                      </div>
+
+                                      {/* Option B: Link URL input */}
+                                      <div className="lg:col-span-5">
+                                        <div className="relative">
+                                          <input
+                                            type="text"
+                                            placeholder="Lub wklej link URL do zdjęcia..."
+                                            value={pair.imageUrl || ''}
+                                            onChange={(e) => handleUpdateMatchingPair(pIdx, 'imageUrl', e.target.value)}
+                                            className="w-full px-2.5 py-2 rounded-xl border-2 border-black text-xs font-bold bg-white focus:ring-2 focus:ring-[#FF4F81] focus:outline-none"
+                                          />
+                                        </div>
+                                      </div>
+
+                                      {/* Option C: Emoji fallback */}
+                                      <div className="lg:col-span-2 flex items-center gap-1">
+                                        <span className="text-[10px] font-black text-gray-700 whitespace-nowrap">Emoji:</span>
+                                        <input
+                                          type="text"
+                                          value={pair.emoji || ''}
+                                          onChange={(e) => handleUpdateMatchingPair(pIdx, 'emoji', e.target.value)}
+                                          placeholder="np. 🦅"
+                                          className="w-full px-2 py-1.5 rounded-xl border-2 border-black text-xs font-bold bg-white text-center"
+                                        />
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={handleAddMatchingPair}
+                            className="bg-yellow-300 hover:bg-yellow-400 text-black border-2 border-black font-black px-4 py-2 rounded-xl text-xs uppercase cursor-pointer shadow-[2px_2px_0px_black] active:scale-95 transition flex items-center gap-1.5"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                            <span>+ Dodaj kolejną parę do dopasowania</span>
+                          </button>
+                        </div>
+                      ) : (
+                        /* Standard Word List for other game types */
+                        <div>
+                          <label className="block text-[11px] font-black uppercase text-black mb-1">
+                            Słowa do przećwiczenia w grze (oddzielone przecinkami):
+                          </label>
+                          <input
+                            type="text"
+                            value={taskWordsInput}
+                            onChange={(e) => setTaskWordsInput(e.target.value)}
+                            required={taskType !== 'matching'}
+                            placeholder="WAKACJE, SŁOŃCE, MORZE, GÓRY, ALFABET, SZKOŁA"
+                            className="w-full px-3 py-2 rounded-xl border-2 border-black text-xs font-mono font-bold bg-yellow-50"
+                          />
+                          <p className="text-[10px] text-gray-800 font-bold mt-1">
+                            Wpisz słowa oddzielone przecinkami (np. <i>WAKACJE, SŁOŃCE, MORZE, GÓRY</i>).
+                          </p>
+                        </div>
+                      )}
 
                       <div className="flex items-center gap-2 pt-1">
                         <button
@@ -1263,7 +1865,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                                              task.type === 'syllables' ? '🧩 Sylaby' :
                                              task.type === 'wordsearch' ? '🔍 Wykreślanka' :
                                              task.type === 'pronoun' ? 'Ten, Ta, To' :
-                                             task.type === 'cases' ? '📖 Przypadki' : task.type}
+                                             task.type === 'cases' ? '📖 Przypadki' :
+                                             task.type === 'matching' ? '🧩 Przeciągnij i Dopasuj' : task.type}
                                           </span>
                                           {isCurrentEditing && (
                                             <span className="bg-amber-400 text-black text-[9px] px-1.5 py-0.2 rounded font-black uppercase">
@@ -1273,11 +1876,24 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                                         </div>
                                         <span className="font-black text-black text-sm block mb-1">{task.title}</span>
                                         <p className="text-[11px] text-gray-800 font-bold mb-2">{task.description}</p>
-                                        {wordsList && (
+                                        {task.type === 'matching' && task.matching && task.matching.length > 0 ? (
+                                          <div className="text-[10px] text-gray-800 bg-white/80 p-2 rounded-lg border border-black/30 font-bold space-y-1">
+                                            <div className="font-black text-black">
+                                              Pary do dopasowania ({task.matching.length}):
+                                            </div>
+                                            <div className="flex flex-wrap gap-1">
+                                              {task.matching.map((m) => (
+                                                <span key={m.id} className="bg-amber-100 text-black px-1.5 py-0.5 rounded border border-black/20 text-[9px]">
+                                                  {m.emoji || '⭐'} {m.wordPl}
+                                                </span>
+                                              ))}
+                                            </div>
+                                          </div>
+                                        ) : wordsList ? (
                                           <p className="text-[10px] text-gray-700 font-mono font-bold bg-white/70 p-1.5 rounded border border-black/30">
                                             <span className="font-sans font-black text-black">Słowa ({task.spelling?.length || task.wordSearch?.words.length}):</span> {wordsList}
                                           </p>
-                                        )}
+                                        ) : null}
                                       </div>
 
                                       <div className="flex items-center justify-end gap-2 pt-2 border-t border-black/20">

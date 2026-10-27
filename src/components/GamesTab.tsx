@@ -6,6 +6,7 @@ import { SyllableGame } from './games/SyllableGame';
 import { WordSearchGame } from './games/WordSearchGame';
 import { PronounGame } from './games/PronounGame';
 import { DeclensionGame } from './games/DeclensionGame';
+import { MatchingGame } from './games/MatchingGame';
 import {
   Gamepad2,
   Sparkles,
@@ -478,6 +479,7 @@ export const GamesTab: React.FC<GamesTabProps> = ({
                           {task.type === 'wordsearch' && '🔍 Wykreślanka'}
                           {task.type === 'pronoun' && 'Ten, Ta, To'}
                           {task.type === 'cases' && '📖 Przypadki'}
+                          {task.type === 'matching' && '🧩 Przeciągnij i Dopasuj'}
                         </span>
                         {isTaskSelected && <Sparkles className="w-3.5 h-3.5 text-[#FF4F81]" />}
                       </div>
@@ -547,6 +549,16 @@ export const GamesTab: React.FC<GamesTabProps> = ({
                 {activeTask.type === 'cases' && (
                   <DeclensionGame
                     items={activeTask.spelling || []}
+                    onComplete={() => {}}
+                    onNextGame={handleNextGameInWeek}
+                  />
+                )}
+
+                {activeTask.type === 'matching' && (
+                  <MatchingGame
+                    key={`${activeTask.id}-${activeTask.matching?.length || 0}-${activeTask.title}`}
+                    items={activeTask.matching || []}
+                    fallbackSpelling={activeTask.spelling}
                     onComplete={() => {}}
                     onNextGame={handleNextGameInWeek}
                   />
