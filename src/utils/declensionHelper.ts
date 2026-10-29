@@ -38,6 +38,147 @@ interface RawDeclensionEntry {
 
 // Curated dictionary for elementary Polish vocabulary with verified grammatical forms
 const KNOWN_DECLENSIONS: Record<string, RawDeclensionEntry> = {
+  // Zawody i osoby (ludzie - męskoosobowy / żywotny)
+  'NAUKOWIEC': {
+    gender: 'masc_anim',
+    m: 'naukowiec',
+    d: 'naukowca',
+    b: 'naukowca',
+    distractors: ['naukowcem', 'naukowcowi'],
+  },
+  'PIŁKARZ': {
+    gender: 'masc_anim',
+    m: 'piłkarz',
+    d: 'piłkarza',
+    b: 'piłkarza',
+    distractors: ['piłkarzem', 'piłkarzowi'],
+  },
+  'PILKARZ': {
+    gender: 'masc_anim',
+    m: 'piłkarz',
+    d: 'piłkarza',
+    b: 'piłkarza',
+    distractors: ['piłkarzem', 'piłkarzowi'],
+  },
+  'ASTRONOM': {
+    gender: 'masc_anim',
+    m: 'astronom',
+    d: 'astronoma',
+    b: 'astronoma',
+    distractors: ['astronomem', 'astronomowi'],
+  },
+  'LEKARZ': {
+    gender: 'masc_anim',
+    m: 'lekarz',
+    d: 'lekarza',
+    b: 'lekarza',
+    distractors: ['lekarzem', 'lekarzowi'],
+  },
+  'NAUCZYCIEL': {
+    gender: 'masc_anim',
+    m: 'nauczyciel',
+    d: 'nauczyciela',
+    b: 'nauczyciela',
+    distractors: ['nauczycielem', 'nauczycielowi'],
+  },
+  'STRAŻAK': {
+    gender: 'masc_anim',
+    m: 'strażak',
+    d: 'strażaka',
+    b: 'strażaka',
+    distractors: ['strażakiem', 'strażakowi'],
+  },
+  'STRAZAK': {
+    gender: 'masc_anim',
+    m: 'strażak',
+    d: 'strażaka',
+    b: 'strażaka',
+    distractors: ['strażakiem', 'strażakowi'],
+  },
+  'POLICJANT': {
+    gender: 'masc_anim',
+    m: 'policjant',
+    d: 'policjanta',
+    b: 'policjanta',
+    distractors: ['policjantem', 'policjantowi'],
+  },
+  'KIEROWCA': {
+    gender: 'masc_anim',
+    m: 'kierowca',
+    d: 'kierowcy',
+    b: 'kierowcę',
+    distractors: ['kierowcą', 'kierowcy'],
+  },
+  'ARTYSTA': {
+    gender: 'masc_anim',
+    m: 'artysta',
+    d: 'artysty',
+    b: 'artystę',
+    distractors: ['artystą', 'artyście'],
+  },
+  'MALARZ': {
+    gender: 'masc_anim',
+    m: 'malarz',
+    d: 'malarza',
+    b: 'malarza',
+    distractors: ['malarzem', 'malarzowi'],
+  },
+  'PISARZ': {
+    gender: 'masc_anim',
+    m: 'pisarz',
+    d: 'pisarza',
+    b: 'pisarza',
+    distractors: ['pisarzem', 'pisarzowi'],
+  },
+  'MUZYK': {
+    gender: 'masc_anim',
+    m: 'muzyk',
+    d: 'muzyka',
+    b: 'muzyka',
+    distractors: ['muzykiem', 'muzykowi'],
+  },
+  'AKTOR': {
+    gender: 'masc_anim',
+    m: 'aktor',
+    d: 'aktora',
+    b: 'aktora',
+    distractors: ['aktorem', 'aktorowi'],
+  },
+  'KUCHARZ': {
+    gender: 'masc_anim',
+    m: 'kucharz',
+    d: 'kucharza',
+    b: 'kucharza',
+    distractors: ['kucharzem', 'kucharzowi'],
+  },
+  'SPORTOWIEC': {
+    gender: 'masc_anim',
+    m: 'sportowiec',
+    d: 'sportowca',
+    b: 'sportowca',
+    distractors: ['sportowcem', 'sportowcowi'],
+  },
+  'BRAMKARZ': {
+    gender: 'masc_anim',
+    m: 'bramkarz',
+    d: 'bramkarza',
+    b: 'bramkarza',
+    distractors: ['bramkarzem', 'bramkarzowi'],
+  },
+  'CHŁOPIEC': {
+    gender: 'masc_anim',
+    m: 'chłopiec',
+    d: 'chłopca',
+    b: 'chłopca',
+    distractors: ['chłopcem', 'chłopcu'],
+  },
+  'CHLOPIEC': {
+    gender: 'masc_anim',
+    m: 'chłopiec',
+    d: 'chłopca',
+    b: 'chłopca',
+    distractors: ['chłopcem', 'chłopcu'],
+  },
   // Słowo podane w poleceniu użytkownika
   'TELEFON': {
     gender: 'masc_inanim',
@@ -586,11 +727,31 @@ const KNOWN_DECLENSIONS: Record<string, RawDeclensionEntry> = {
  * - Męski ożywiony: "Tu jest mój ...", "Nie ma mojego ...", "Widzę mojego ..."
  * - Nijaki: "Tu jest moje ...", "Nie ma mojego ...", "Widzę moje ..."
  */
-function getSentencePrefixes(gender: PolishGrammarGender): {
+
+export function isPersonOrProfession(cleanWord: string): boolean {
+  const clean = cleanWord.toLowerCase().trim();
+  return (
+    /^(naukowiec|pilkarz|piłkarz|astronom|lekarz|nauczyciel|malarz|pisarz|muzyk|strazak|strażak|policjant|kierowca|sportowiec|bramkarz|aktor|kucharz|piekarz|murarz|marynarz|rycerz|zolnierz|żołnierz|uczen|uczeń|kolega|brat|tata|syn|chlopiec|chłopiec|pan|krol|król|prezydent|student|dyrektor|profesor|doktor|trener|fryzjer|kelner|inżynier|inzynier|artysta|programista|autor|bohater|lider|kapitan|pilot|sedzia|sędzia|pływak|plywak|biegacz|tancerz|piosenkarz|dziennikarz|fotograf|ogrodnik|rolnik|górnik|gornik|mechanik|informatyk|matematyk|chemik|fizyk|biolog|geograf|historyk|adwokat|aptekarz|sprzedawca|weterynarz|dentysta|leśnik|lesnik|strażnik|straznik|prawnik|architekt|astronau|kosmonauta|człowiek|czlowiek|sąsiad|sasiad|gość|gosc)/i.test(clean) ||
+    /(arz|erz|mistrz|olog|zof|ant|ent|or|er|ik|yk|ist|ista|yst|ysta|ca|ec)$/i.test(clean)
+  );
+}
+
+function getSentencePrefixes(gender: PolishGrammarGender, rawWord?: string): {
   mianownikPrefix: string;
   dopelniaczPrefix: string;
   biernikPrefix: string;
 } {
+  const clean = rawWord ? cleanWord(rawWord).toLowerCase().trim() : '';
+  const isPerson = clean ? isPersonOrProfession(clean) : false;
+
+  if (isPerson) {
+    return {
+      mianownikPrefix: 'Gdzie jest',
+      dopelniaczPrefix: 'Nie ma',
+      biernikPrefix: 'Widzę',
+    };
+  }
+
   switch (gender) {
     case 'fem':
       return {
@@ -606,9 +767,9 @@ function getSentencePrefixes(gender: PolishGrammarGender): {
       };
     case 'masc_anim':
       return {
-        mianownikPrefix: 'Tu jest mój',
-        dopelniaczPrefix: 'Nie ma mojego',
-        biernikPrefix: 'Widzę mojego',
+        mianownikPrefix: 'Gdzie jest nasz',
+        dopelniaczPrefix: 'Nie ma naszego',
+        biernikPrefix: 'Widzę naszego',
       };
     case 'neut':
       return {
@@ -710,39 +871,59 @@ function generateAlgorithmicDeclension(rawWord: string): RawDeclensionEntry {
   }
 
   // Masculine words
-  const isLikelyAnim = /^(pies|kot|orzel|orzeł|ptak|smok|wilk|kon|koń|brat|tata|syn|chlopiec|chłopiec|krol|król|rycerz|pan|lekarz|nauczyciel|kolega|uczen|uczeń|zolnierz|żołnierz)/i.test(clean);
+  const isPerson = isPersonOrProfession(clean);
+  const isAnimal = /^(pies|kot|orzel|orzeł|ptak|smok|wilk|kon|koń|lew|tygrys|slon|słoń|niedzwiedz|niedźwiedź|zubr|żubr|bocian|jez|jeż|lis|zajac|zając|waz|wąż|delfin|rekin|wieloryb|zuraw|żuraw|wrobel|wróbel|golab|gołąb|kogut|kaczor|indyk|chomik|krolik|królik|zolw|żółw|bobr|bóbr|kret|dzik|borsuk|hipopotam|nosorozec|nosorożec|strus|struś)/i.test(clean);
+  const isLikelyAnim = isPerson || isAnimal;
+
+  // Masculine personal nouns ending in -a (kierowca, artysta, programista, kolega, tata)
+  if (isPerson && clean.endsWith('a')) {
+    const stem = clean.slice(0, -1);
+    const stemLast = stem.slice(-1);
+    const dEnding = stemLast === 'k' || stemLast === 'g' || stemLast === 'l' ? 'i' : 'y';
+    return {
+      gender: 'masc_anim',
+      m: clean,
+      d: stem + dEnding,
+      b: stem + 'ę',
+      distractors: [stem + 'ą', stem + 'e'],
+    };
+  }
+
   const gender: PolishGrammarGender = isLikelyAnim ? 'masc_anim' : 'masc_inanim';
 
-  // Words that take -a in Dopełniacz:
-  // 1. All animate masculine nouns (pies -> psa, kot -> kota, ptak -> ptaka)
-  // 2. Diminutives, tools, and everyday items in -ik, -yk, -ak (czajnik -> czajnika, piórnik -> piórnika, stolik -> stolika, głośnik -> głośnika, plecak -> plecaka)
-  // 3. Technical devices, appliances, instruments in -or, -er, -ar (telewizor -> telewizora, komputer -> komputera, toster -> tostera, mikser -> miksera, kalkulator -> kalkulatora, projektor -> projektora, monitor -> monitora, traktor -> traktora, wentylator -> wentylatora)
-  // 4. Other modern appliances, devices, utensils and concrete objects (laptop -> laptopa, smartfon -> smartfona, tablet -> tableta, pilot -> pilota, odkurzacz -> odkurzacza, talerz -> talerza, nóż -> noża, widelec -> widelca, garnek -> garnka, kubek -> kubka, ołówek -> ołówka)
+  // In Polish:
+  // 1. ALL animate masculine nouns (people, professions, animals) ALWAYS take -a in Dopełniacz!
+  //    (naukowiec -> naukowca, piłkarz -> piłkarza, astronom -> astronoma, lekarz -> lekarza, pies -> psa, kot -> kota)
+  // 2. Diminutives, tools, everyday items, electronic devices in -ik, -yk, -ak, -or, -er, -ar, -arz, -acz, -ek, -om, -ant, -ent, -iec
   const takesAInDopelniacz =
     isLikelyAnim ||
-    /(ik|yk|ak|or|er|ar|arz|acz|fon|top|let|ot|ek)$/i.test(clean) ||
+    /(ik|yk|ak|or|er|ar|arz|acz|fon|top|let|ot|ek|iec|ant|ent|om|ist)$/i.test(clean) ||
     /^(telewizor|komputer|czajnik|laptop|smartfon|tablet|pilot|toster|mikser|blender|odkurzacz|zegar|zegarek|talerz|parasol|dolar|funt|zloty|złoty|klucz|noż|nóż|widelec|garnek|dzbanek)/i.test(clean);
 
   let dForm: string;
-  if (takesAInDopelniacz) {
-    if (clean.endsWith('ek') && clean.length > 3) {
-      const baseStem = clean.slice(0, -2);
-      dForm = baseStem + 'ka';
-    } else {
-      dForm = clean + 'a';
-    }
+  if (clean.endsWith('iec')) {
+    // Suffix -iec: fleeting 'e' drops out (naukowiec -> naukowca, chłopiec -> chłopca, sportowiec -> sportowca)
+    const baseStem = clean.slice(0, -3);
+    dForm = baseStem + 'ca';
+  } else if (clean.endsWith('ek') && clean.length > 3) {
+    // Fleeting 'e' in -ek (ołówek -> ołówka, dziadek -> dziadka, wujek -> wujka)
+    const baseStem = clean.slice(0, -2);
+    dForm = baseStem + 'ka';
+  } else if (takesAInDopelniacz) {
+    dForm = clean + 'a';
   } else {
     dForm = clean + 'u';
   }
 
-  // Biernik: for animate masculine nouns = Dopełniacz (-a), for inanimate = Mianownik (same as clean)
+  // Biernik: In Polish for ALL animate & personal masculine nouns:
+  // BIERNIK = DOPEŁNIACZ (końcówka -a, np. widzę naukowca, piłkarza, astronoma, psa)!
+  // For inanimate masculine nouns: BIERNIK = MIANOWNIK (np. widzę telefon, komputer, stół)!
   const bForm = isLikelyAnim ? dForm : clean;
 
   const distractors = [clean + 'em'];
   if (isLikelyAnim) {
     distractors.push(clean + 'owi');
   } else {
-    // For inanimate masculine, plausible distractors for 2nd grade: Miejscownik (np. w telewizorze, na biurku)
     if (clean.endsWith('or') || clean.endsWith('er')) {
       distractors.push(clean.slice(0, -1) + 'ze');
     } else {
@@ -780,7 +961,7 @@ export function getDeclensionForWord(rawWord: string): WordDeclension {
 
   const entry: RawDeclensionEntry = KNOWN_DECLENSIONS[upper] || generateAlgorithmicDeclension(rawWord);
 
-  const prefixes = getSentencePrefixes(entry.gender);
+  const prefixes = getSentencePrefixes(entry.gender, rawWord);
   const genderLabel = getGenderLabel(entry.gender);
 
   const mianownik: CaseSentenceData = {
@@ -871,6 +1052,422 @@ const CURATED_CASE_CHALLENGES: Record<
     biernik: RawCaseChallenge;
   }
 > = {
+  NAUKOWIEC: {
+    mianownik: {
+      prefix: 'Gdzie jest nasz mądry ',
+      stem: 'naukow',
+      missing: 'iec',
+      suffix: '?',
+      fullWord: 'naukowiec',
+      fullSentence: 'Gdzie jest nasz mądry naukowiec?',
+    },
+    dopelniacz: {
+      prefix: 'W laboratorium dzisiaj nie ma ',
+      stem: 'naukow',
+      missing: 'ca',
+      suffix: '!',
+      fullWord: 'naukowca',
+      fullSentence: 'W laboratorium dzisiaj nie ma naukowca!',
+    },
+    biernik: {
+      prefix: 'W telewizji z dumą oglądamy znanego ',
+      stem: 'naukow',
+      missing: 'ca',
+      suffix: '.',
+      fullWord: 'naukowca',
+      fullSentence: 'W telewizji z dumą oglądamy znanego naukowca.',
+    },
+  },
+  PIŁKARZ: {
+    mianownik: {
+      prefix: 'Gdzie jest nasz najlepszy ',
+      stem: 'piłk',
+      missing: 'arz',
+      suffix: '?',
+      fullWord: 'piłkarz',
+      fullSentence: 'Gdzie jest nasz najlepszy piłkarz?',
+    },
+    dopelniacz: {
+      prefix: 'Na dzisiejszym treningu nie ma ',
+      stem: 'piłk',
+      missing: 'arza',
+      suffix: '!',
+      fullWord: 'piłkarza',
+      fullSentence: 'Na dzisiejszym treningu nie ma piłkarza!',
+    },
+    biernik: {
+      prefix: 'Na boisku z radością widzę ',
+      stem: 'piłk',
+      missing: 'arza',
+      suffix: '.',
+      fullWord: 'piłkarza',
+      fullSentence: 'Na boisku z radością widzę piłkarza.',
+    },
+  },
+  PILKARZ: {
+    mianownik: {
+      prefix: 'Gdzie jest nasz najlepszy ',
+      stem: 'piłk',
+      missing: 'arz',
+      suffix: '?',
+      fullWord: 'piłkarz',
+      fullSentence: 'Gdzie jest nasz najlepszy piłkarz?',
+    },
+    dopelniacz: {
+      prefix: 'Na dzisiejszym treningu nie ma ',
+      stem: 'piłk',
+      missing: 'arza',
+      suffix: '!',
+      fullWord: 'piłkarza',
+      fullSentence: 'Na dzisiejszym treningu nie ma piłkarza!',
+    },
+    biernik: {
+      prefix: 'Na boisku z radością widzę ',
+      stem: 'piłk',
+      missing: 'arza',
+      suffix: '.',
+      fullWord: 'piłkarza',
+      fullSentence: 'Na boisku z radością widzę piłkarza.',
+    },
+  },
+  ASTRONOM: {
+    mianownik: {
+      prefix: 'Gdzie jest nasz wybitny ',
+      stem: 'astron',
+      missing: 'om',
+      suffix: '?',
+      fullWord: 'astronom',
+      fullSentence: 'Gdzie jest nasz wybitny astronom?',
+    },
+    dopelniacz: {
+      prefix: 'W ciemnym obserwatorium nie ma ',
+      stem: 'astron',
+      missing: 'oma',
+      suffix: '!',
+      fullWord: 'astronoma',
+      fullSentence: 'W ciemnym obserwatorium nie ma astronoma!',
+    },
+    biernik: {
+      prefix: 'Na ciekawym wykładzie o kosmosie widzę ',
+      stem: 'astron',
+      missing: 'oma',
+      suffix: '.',
+      fullWord: 'astronoma',
+      fullSentence: 'Na ciekawym wykładzie o kosmosie widzę astronoma.',
+    },
+  },
+  LEKARZ: {
+    mianownik: {
+      prefix: 'Gdzie jest nasz troskliwy ',
+      stem: 'lek',
+      missing: 'arz',
+      suffix: '?',
+      fullWord: 'lekarz',
+      fullSentence: 'Gdzie jest nasz troskliwy lekarz?',
+    },
+    dopelniacz: {
+      prefix: 'W przychodni zdrowia nie ma ',
+      stem: 'lek',
+      missing: 'arza',
+      suffix: '!',
+      fullWord: 'lekarza',
+      fullSentence: 'W przychodni zdrowia nie ma lekarza!',
+    },
+    biernik: {
+      prefix: 'W gabinecie lekarskim widzę ',
+      stem: 'lek',
+      missing: 'arza',
+      suffix: '.',
+      fullWord: 'lekarza',
+      fullSentence: 'W gabinecie lekarskim widzę lekarza.',
+    },
+  },
+  NAUCZYCIEL: {
+    mianownik: {
+      prefix: 'Gdzie jest nasz ulubiony ',
+      stem: 'nauczyc',
+      missing: 'iel',
+      suffix: '?',
+      fullWord: 'nauczyciel',
+      fullSentence: 'Gdzie jest nasz ulubiony nauczyciel?',
+    },
+    dopelniacz: {
+      prefix: 'W klasie szkolnej dzisiaj nie ma ',
+      stem: 'nauczyc',
+      missing: 'iela',
+      suffix: '!',
+      fullWord: 'nauczyciela',
+      fullSentence: 'W klasie szkolnej dzisiaj nie ma nauczyciela!',
+    },
+    biernik: {
+      prefix: 'Przy szkolnej tablicy widzę ',
+      stem: 'nauczyc',
+      missing: 'iela',
+      suffix: '.',
+      fullWord: 'nauczyciela',
+      fullSentence: 'Przy szkolnej tablicy widzę nauczyciela.',
+    },
+  },
+  STRAŻAK: {
+    mianownik: {
+      prefix: 'Gdzie jest nasz odważny ',
+      stem: 'straż',
+      missing: 'ak',
+      suffix: '?',
+      fullWord: 'strażak',
+      fullSentence: 'Gdzie jest nasz odważny strażak?',
+    },
+    dopelniacz: {
+      prefix: 'W remizie strażackiej nie ma ',
+      stem: 'straż',
+      missing: 'aka',
+      suffix: '!',
+      fullWord: 'strażaka',
+      fullSentence: 'W remizie strażackiej nie ma strażaka!',
+    },
+    biernik: {
+      prefix: 'W czerwonym wozie z syreną widzę ',
+      stem: 'straż',
+      missing: 'aka',
+      suffix: '.',
+      fullWord: 'strażaka',
+      fullSentence: 'W czerwonym wozie z syreną widzę strażaka.',
+    },
+  },
+  STRAZAK: {
+    mianownik: {
+      prefix: 'Gdzie jest nasz odważny ',
+      stem: 'straż',
+      missing: 'ak',
+      suffix: '?',
+      fullWord: 'strażak',
+      fullSentence: 'Gdzie jest nasz odważny strażak?',
+    },
+    dopelniacz: {
+      prefix: 'W remizie strażackiej nie ma ',
+      stem: 'straż',
+      missing: 'aka',
+      suffix: '!',
+      fullWord: 'strażaka',
+      fullSentence: 'W remizie strażackiej nie ma strażaka!',
+    },
+    biernik: {
+      prefix: 'W czerwonym wozie z syreną widzę ',
+      stem: 'straż',
+      missing: 'aka',
+      suffix: '.',
+      fullWord: 'strażaka',
+      fullSentence: 'W czerwonym wozie z syreną widzę strażaka.',
+    },
+  },
+  POLICJANT: {
+    mianownik: {
+      prefix: 'Gdzie jest nasz dzielny ',
+      stem: 'policj',
+      missing: 'ant',
+      suffix: '?',
+      fullWord: 'policjant',
+      fullSentence: 'Gdzie jest nasz dzielny policjant?',
+    },
+    dopelniacz: {
+      prefix: 'Na ruchliwym skrzyżowaniu nie ma ',
+      stem: 'policj',
+      missing: 'anta',
+      suffix: '!',
+      fullWord: 'policjanta',
+      fullSentence: 'Na ruchliwym skrzyżowaniu nie ma policjanta!',
+    },
+    biernik: {
+      prefix: 'Na bezpiecznym przejściu dla pieszych widzę ',
+      stem: 'policj',
+      missing: 'anta',
+      suffix: '.',
+      fullWord: 'policjanta',
+      fullSentence: 'Na bezpiecznym przejściu dla pieszych widzę policjanta.',
+    },
+  },
+  KIEROWCA: {
+    mianownik: {
+      prefix: 'Gdzie jest nasz punktualny ',
+      stem: 'kierow',
+      missing: 'ca',
+      suffix: '?',
+      fullWord: 'kierowca',
+      fullSentence: 'Gdzie jest nasz punktualny kierowca?',
+    },
+    dopelniacz: {
+      prefix: 'W żółtym autobusie szkolnym nie ma ',
+      stem: 'kierow',
+      missing: 'cy',
+      suffix: '!',
+      fullWord: 'kierowcy',
+      fullSentence: 'W żółtym autobusie szkolnym nie ma kierowcy!',
+    },
+    biernik: {
+      prefix: 'Za bezpieczną kierownicą widzę ',
+      stem: 'kierow',
+      missing: 'cę',
+      suffix: '.',
+      fullWord: 'kierowcę',
+      fullSentence: 'Za bezpieczną kierownicą widzę kierowcę.',
+    },
+  },
+  ARTYSTA: {
+    mianownik: {
+      prefix: 'Gdzie jest nasz utalentowany ',
+      stem: 'artys',
+      missing: 'ta',
+      suffix: '?',
+      fullWord: 'artysta',
+      fullSentence: 'Gdzie jest nasz utalentowany artysta?',
+    },
+    dopelniacz: {
+      prefix: 'W pięknej galerii sztuki nie ma ',
+      stem: 'artys',
+      missing: 'ty',
+      suffix: '!',
+      fullWord: 'artysty',
+      fullSentence: 'W pięknej galerii sztuki nie ma artysty!',
+    },
+    biernik: {
+      prefix: 'Przy kolorowej sztaludze widzę ',
+      stem: 'artys',
+      missing: 'tę',
+      suffix: '.',
+      fullWord: 'artystę',
+      fullSentence: 'Przy kolorowej sztaludze widzę artystę.',
+    },
+  },
+  MALARZ: {
+    mianownik: {
+      prefix: 'Gdzie jest nasz wspaniały ',
+      stem: 'mal',
+      missing: 'arz',
+      suffix: '?',
+      fullWord: 'malarz',
+      fullSentence: 'Gdzie jest nasz wspaniały malarz?',
+    },
+    dopelniacz: {
+      prefix: 'W jasnej pracowni dzisiaj nie ma ',
+      stem: 'mal',
+      missing: 'arza',
+      suffix: '!',
+      fullWord: 'malarza',
+      fullSentence: 'W jasnej pracowni dzisiaj nie ma malarza!',
+    },
+    biernik: {
+      prefix: 'Z pędzlem i farbami widzę ',
+      stem: 'mal',
+      missing: 'arza',
+      suffix: '.',
+      fullWord: 'malarza',
+      fullSentence: 'Z pędzlem i farbami widzę malarza.',
+    },
+  },
+  PISARZ: {
+    mianownik: {
+      prefix: 'Gdzie jest nasz słynny ',
+      stem: 'pis',
+      missing: 'arz',
+      suffix: '?',
+      fullWord: 'pisarz',
+      fullSentence: 'Gdzie jest nasz słynny pisarz?',
+    },
+    dopelniacz: {
+      prefix: 'W szkolnej bibliotece nie ma ',
+      stem: 'pis',
+      missing: 'arza',
+      suffix: '!',
+      fullWord: 'pisarza',
+      fullSentence: 'W szkolnej bibliotece nie ma pisarza!',
+    },
+    biernik: {
+      prefix: 'Na spotkaniu autorskim z radością widzę ',
+      stem: 'pis',
+      missing: 'arza',
+      suffix: '.',
+      fullWord: 'pisarza',
+      fullSentence: 'Na spotkaniu autorskim z radością widzę pisarza.',
+    },
+  },
+  MUZYK: {
+    mianownik: {
+      prefix: 'Gdzie jest nasz zdolny ',
+      stem: 'muz',
+      missing: 'yk',
+      suffix: '?',
+      fullWord: 'muzyk',
+      fullSentence: 'Gdzie jest nasz zdolny muzyk?',
+    },
+    dopelniacz: {
+      prefix: 'W wielkiej sali koncertowej nie ma ',
+      stem: 'muz',
+      missing: 'yka',
+      suffix: '!',
+      fullWord: 'muzyka',
+      fullSentence: 'W wielkiej sali koncertowej nie ma muzyka!',
+    },
+    biernik: {
+      prefix: 'Z gitarą na scenie widzę ',
+      stem: 'muz',
+      missing: 'yka',
+      suffix: '.',
+      fullWord: 'muzyka',
+      fullSentence: 'Z gitarą na scenie widzę muzyka.',
+    },
+  },
+  AKTOR: {
+    mianownik: {
+      prefix: 'Gdzie jest nasz znakomity ',
+      stem: 'akt',
+      missing: 'or',
+      suffix: '?',
+      fullWord: 'aktor',
+      fullSentence: 'Gdzie jest nasz znakomity aktor?',
+    },
+    dopelniacz: {
+      prefix: 'Na deskach teatru dzisiaj nie ma ',
+      stem: 'akt',
+      missing: 'ora',
+      suffix: '!',
+      fullWord: 'aktora',
+      fullSentence: 'Na deskach teatru dzisiaj nie ma aktora!',
+    },
+    biernik: {
+      prefix: 'W ciekawym przedstawieniu widzę ',
+      stem: 'akt',
+      missing: 'ora',
+      suffix: '.',
+      fullWord: 'aktora',
+      fullSentence: 'W ciekawym przedstawieniu widzę aktora.',
+    },
+  },
+  KUCHARZ: {
+    mianownik: {
+      prefix: 'Gdzie jest nasz mistrzowski ',
+      stem: 'kuch',
+      missing: 'arz',
+      suffix: '?',
+      fullWord: 'kucharz',
+      fullSentence: 'Gdzie jest nasz mistrzowski kucharz?',
+    },
+    dopelniacz: {
+      prefix: 'W szkolnej stołówce dzisiaj nie ma ',
+      stem: 'kuch',
+      missing: 'arza',
+      suffix: '!',
+      fullWord: 'kucharza',
+      fullSentence: 'W szkolnej stołówce dzisiaj nie ma kucharza!',
+    },
+    biernik: {
+      prefix: 'W czapce kucharskiej z uśmiechem widzę ',
+      stem: 'kuch',
+      missing: 'arza',
+      suffix: '.',
+      fullWord: 'kucharza',
+      fullSentence: 'W czapce kucharskiej z uśmiechem widzę kucharza.',
+    },
+  },
   TELEFON: {
     mianownik: {
       prefix: 'Gdzie jest mój ',
@@ -1843,10 +2440,13 @@ function generateFallbackChallenges(rawWord: string): {
   const clean = cleanWord(rawWord).toLowerCase();
   const upper = clean.toUpperCase();
   const entry: RawDeclensionEntry = KNOWN_DECLENSIONS[upper] || generateAlgorithmicDeclension(rawWord);
-  
+  const isPerson = isPersonOrProfession(clean);
+
   // Compute common stem
   let stem = clean;
-  if (stem.length > 3) {
+  if (clean.endsWith('iec')) {
+    stem = clean.slice(0, -3); // e.g. "naukow" for "naukowiec"
+  } else if (stem.length > 3) {
     if (stem.endsWith('ia') || stem.endsWith('ja')) {
       stem = stem.slice(0, -2);
     } else if (stem.endsWith('a') || stem.endsWith('o') || stem.endsWith('e')) {
@@ -1888,10 +2488,16 @@ function generateFallbackChallenges(rawWord: string): {
     };
   };
 
-  const prefixes = getSentencePrefixes(entry.gender);
-  const mianPrefix = `Gdzie jest ${prefixes.mianownikPrefix.toLowerCase().replace('tu jest ', '')} `;
-  const dopPrefix = `${prefixes.dopelniaczPrefix} `;
-  const bierPrefix = `${prefixes.biernikPrefix} `;
+  const prefixes = getSentencePrefixes(entry.gender, rawWord);
+  const mianPrefix = isPerson
+    ? 'Gdzie jest '
+    : `Gdzie jest ${prefixes.mianownikPrefix.toLowerCase().replace('tu jest ', '').replace('gdzie jest ', '')} `;
+  const dopPrefix = isPerson
+    ? 'Nie ma '
+    : `${prefixes.dopelniaczPrefix} `;
+  const bierPrefix = isPerson
+    ? 'Widzę '
+    : `${prefixes.biernikPrefix} `;
 
   return {
     mianownik: buildChallenge(entry.m, mianPrefix, '?', 'a'),

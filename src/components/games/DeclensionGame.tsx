@@ -189,8 +189,8 @@ export const DeclensionGame: React.FC<DeclensionGameProps> = ({ items, onComplet
         return;
       }
 
-      // Never intercept modifier keys (AltGr/Ctrl for Polish characters ą, ć, ę, ł, ń, ó, ś, ź, ż or shortcuts)
-      if (e.ctrlKey || e.metaKey || e.altKey) {
+      // Never intercept command shortcuts (Ctrl+C, Cmd+R, etc.), but allow AltGr / Option for Polish characters (ą, ć, ę, ł, ń, ó, ś, ź, ż)
+      if ((e.ctrlKey && !e.altKey) || e.metaKey) {
         return;
       }
 
@@ -263,12 +263,10 @@ export const DeclensionGame: React.FC<DeclensionGameProps> = ({ items, onComplet
 
         <div>
           <h3 className="text-2xl sm:text-3xl font-black text-black uppercase tracking-tight">
-            Wspaniale! Wszystkie luki uzupełnione! 🎉
+            Wspaniale! Wszystkie zdania uzupełnione! 🎉
           </h3>
           <p className="text-sm font-bold text-gray-800 mt-2">
-            Zdobyłeś <span className="text-black font-black text-base">{score}</span> z{' '}
-            <span className="text-black font-black text-base">{challenges.length}</span> punktów i opanowałeś
-            odmianę przez przypadki!
+            Wszystkie zadania z tej lekcji zostały pomyślnie ukończone! Opanowałeś odmianę przez przypadki!
           </p>
         </div>
 
@@ -353,9 +351,6 @@ export const DeclensionGame: React.FC<DeclensionGameProps> = ({ items, onComplet
           <span className="text-xs font-black uppercase text-gray-700 bg-gray-100 border border-black px-2.5 py-1 rounded-lg">
             Zadanie {currentIndex + 1} z {challenges.length}
           </span>
-          <span className="text-xs font-black text-amber-800 bg-amber-100 border border-amber-300 px-2.5 py-1 rounded-lg flex items-center gap-1">
-            ⭐ {score} pkt
-          </span>
         </div>
 
         {/* Case Indicator Badge */}
@@ -386,10 +381,6 @@ export const DeclensionGame: React.FC<DeclensionGameProps> = ({ items, onComplet
         }`}
       >
         <div className="text-center">
-          <span className="text-[11px] font-black uppercase tracking-wider text-gray-500 block mb-2">
-            Wypełnij brakujące litery w zdaniu:
-          </span>
-
           {/* Sentence Display with Stem and Letter Slots */}
           <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-3 text-lg sm:text-2xl md:text-3xl font-extrabold text-gray-900 leading-relaxed py-2">
             {/* Sentence Prefix */}

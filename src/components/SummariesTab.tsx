@@ -230,18 +230,28 @@ export const SummariesTab: React.FC<SummariesTabProps> = ({ summaries, targetDat
             className="bg-white p-5 sm:p-8 rounded-3xl border-4 border-black shadow-[8px_8px_0px_black] transition-all"
           >
             {/* Header / Date */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b-3 border-black pb-4 mb-5">
-              <div className="flex items-start sm:items-center gap-3">
-                <div className="w-14 h-14 rounded-2xl bg-[#FFD700] border-3 border-black text-black font-black text-xs flex flex-col items-center justify-center shrink-0 shadow-[3px_3px_0px_black] rotate-[-2deg]">
-                  <span className="text-[10px] tracking-wider uppercase">SOBOTA</span>
-                  <span className="text-sm text-[#FF4F81] font-black leading-none">Najnowsze</span>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b-3 border-black pb-4 mb-5">
+              <div className="flex items-start sm:items-center gap-3.5 min-w-0">
+                {/* Visual Icon Badge (clean, well-proportioned, never overflows) */}
+                <div className="w-13 h-13 sm:w-14 sm:h-14 rounded-2xl bg-[#FFD700] border-3 border-black text-black flex flex-col items-center justify-center shrink-0 shadow-[3px_3px_0px_black] rotate-[-2deg]">
+                  <Sparkles className="w-6 h-6 text-[#FF4F81] fill-[#FF4F81]/20" />
+                  <span className="text-[8px] font-black uppercase tracking-wider text-black mt-0.5">
+                    ZJAZD
+                  </span>
                 </div>
 
-                <div>
-                  <span className="text-xs font-black text-black bg-yellow-200 border-2 border-black px-2.5 py-0.5 rounded-md shadow-[2px_2px_0px_black] inline-block">
-                    {latestSummary.date}
-                  </span>
-                  <h2 className="text-lg sm:text-2xl font-black text-black mt-1 uppercase tracking-tight break-words">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="inline-flex items-center gap-1.5 bg-[#FF4F81] text-white border-2 border-black font-black text-[10px] sm:text-xs px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-[2px_2px_0px_black]">
+                      <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                      Najnowsze Podsumowanie
+                    </span>
+                    <span className="text-xs font-black text-black bg-yellow-100 border-2 border-black px-2.5 py-0.5 rounded-lg shadow-[2px_2px_0px_black] inline-flex items-center gap-1">
+                      <span>📅</span>
+                      <span>{latestSummary.date}</span>
+                    </span>
+                  </div>
+                  <h2 className="text-lg sm:text-2xl font-black text-black mt-1.5 uppercase tracking-tight break-words">
                     {latestSummary.topic}
                   </h2>
                 </div>

@@ -15,6 +15,20 @@ const POLISH_MONTHS = [
   'Lipiec', 'Sierpień', 'Wrzesień', 'Październik', 'Listopad', 'Grudzień'
 ];
 
+const SCHOOL_YEAR_MONTHS = [
+  { year: 2026, month: 7, short: 'Sierp', full: 'Sierpień 2026' },
+  { year: 2026, month: 8, short: 'Wrz', full: 'Wrzesień 2026' },
+  { year: 2026, month: 9, short: 'Paź', full: 'Październik 2026' },
+  { year: 2026, month: 10, short: 'Lis', full: 'Listopad 2026' },
+  { year: 2026, month: 11, short: 'Gru', full: 'Grudzień 2026' },
+  { year: 2027, month: 0, short: 'Sty', full: 'Styczeń 2027' },
+  { year: 2027, month: 1, short: 'Lut', full: 'Luty 2027' },
+  { year: 2027, month: 2, short: 'Mar', full: 'Marzec 2027' },
+  { year: 2027, month: 3, short: 'Kwi', full: 'Kwiecień 2027' },
+  { year: 2027, month: 4, short: 'Maj', full: 'Maj 2027' },
+  { year: 2027, month: 5, short: 'Cze', full: 'Czerwiec 2027' },
+];
+
 export const CalendarTab: React.FC<CalendarTabProps> = ({
   classEvents,
   summaries = [],
@@ -35,7 +49,7 @@ export const CalendarTab: React.FC<CalendarTabProps> = ({
   const currentEvent = sortedEvents.find((e) => e.status === 'next') || sortedEvents[0];
   const [selectedEventId, setSelectedEventId] = useState<string>(currentEvent?.id || sortedEvents[0]?.id || '');
 
-  // Dynamic View Year & Month state
+  // Dynamic View Year & Month state (Default within 2026/2027 school year)
   const [viewYear, setViewYear] = useState<number>(() => {
     return todayYear;
   });
@@ -50,6 +64,10 @@ export const CalendarTab: React.FC<CalendarTabProps> = ({
   const startDayOfWeek = (rawFirstDay + 6) % 7; // Monday=0, Tuesday=1 ... Sunday=6
 
   const handlePrevMonth = () => {
+    // Limit to August (index 7) 2026
+    if (viewYear < 2026 || (viewYear === 2026 && viewMonth <= 7)) {
+      return;
+    }
     if (viewMonth === 0) {
       setViewMonth(11);
       setViewYear((y) => y - 1);
@@ -92,7 +110,13 @@ export const CalendarTab: React.FC<CalendarTabProps> = ({
     return sortedEvents.find((e) => e.isoDate === targetIso);
   };
 
-  const selectedEvent = sortedEvents.find((e) => e.id === selectedEventId) || sortedEvents[0];
+  // Check if selectedEvent belongs to viewed month, or pick first event of viewed month if present
+  const viewedMonthIsoPrefix = `${viewYear}-${(viewMonth + 1).toString().padStart(2, '0')}`;
+  const eventsInViewMonth = sortedEvents.filter((e) => e.isoDate?.startsWith(viewedMonthIsoPrefix));
+  const activeSelectedEvent =
+    (selectedEventId && sortedEvents.find((e) => e.id === selectedEventId && e.isoDate?.startsWith(viewedMonthIsoPrefix))) ||
+    eventsInViewMonth[0] ||
+    null;
 
   return (
     <div className="space-y-6 sm:space-y-8 animate-fade-in w-full">
@@ -121,14 +145,58 @@ export const CalendarTab: React.FC<CalendarTabProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
         {/* Left 2 Cols: Monthly Grid */}
         <div className="lg:col-span-2 bg-white p-4 sm:p-8 rounded-3xl border-4 border-black shadow-[8px_8px_0px_black]">
+          {/* Quick Month Selector Bar (Rok Szkolny 2026/2027: Sierpień 2026 – Czerwiec 2027) */}
+          <div className="mb-4 pb-3 border-b-2 border-black/10">
+            <div className="flex items-center justify-between gap-1 mb-2">
+              <span className="text-[10px] font-black uppercase tracking-wider text-gray-700">
+                Wybór miesiąca w roku szkolnym 2026/2027:
+              </span>
+              <span className="text-[9px] font-black text-blue-900 bg-blue-100 px-2 py-0.5 rounded border border-blue-300 uppercase">
+                Sierpień 2026 – Czerwiec 2027
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+              {SCHOOL_YEAR_MONTHS.map((mItem) => {
+                const isCurrent = viewYear === mItem.year && viewMonth === mItem.month;
+                const hasEvents = sortedEvents.some((e) =>
+                  e.isoDate?.startsWith(`${mItem.year}-${(mItem.month + 1).toString().padStart(2, '0')}`)
+                );
+                return (
+                  <button
+                    key={`${mItem.year}-${mItem.month}`}
+                    onClick={() => {
+                      setViewYear(mItem.year);
+                      setViewMonth(mItem.month);
+                    }}
+                    className={`px-2.5 py-1 rounded-xl text-[11px] font-black border-2 border-black transition cursor-pointer whitespace-nowrap shrink-0 flex items-center gap-1 ${
+                      isCurrent
+                        ? 'bg-[#FFD700] text-black shadow-[3px_3px_0px_black] scale-102 ring-2 ring-black'
+                        : 'bg-yellow-50 text-gray-800 hover:bg-yellow-100 hover:border-black shadow-[1px_1px_0px_black]'
+                    }`}
+                  >
+                    <span>{mItem.short} '{mItem.year.toString().slice(2)}</span>
+                    {hasEvents && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#FF4F81] shrink-0" title="Zjazdy zaplanowane" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           {/* Month Header Navigation */}
           <div className="flex items-center justify-between gap-2 mb-4 sm:mb-6 pb-3 sm:pb-4 border-b-3 border-black">
             <button
               onClick={handlePrevMonth}
-              className="p-2 sm:p-2.5 rounded-xl border-2 border-black bg-yellow-200 hover:bg-yellow-300 cursor-pointer transition shadow-[2px_2px_0px_black] flex items-center gap-1 font-black text-xs uppercase"
+              disabled={viewYear < 2026 || (viewYear === 2026 && viewMonth <= 7)}
+              className={`p-2 sm:p-2.5 rounded-xl border-2 border-black flex items-center gap-1 font-black text-xs uppercase transition shadow-[2px_2px_0px_black] ${
+                viewYear < 2026 || (viewYear === 2026 && viewMonth <= 7)
+                  ? 'bg-gray-200 text-gray-400 border-gray-400 shadow-none cursor-not-allowed'
+                  : 'bg-yellow-200 hover:bg-yellow-300 cursor-pointer text-black'
+              }`}
               title="Poprzedni miesiąc"
             >
-              <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 text-black" />
+              <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
               <span className="hidden sm:inline">Poprzedni</span>
             </button>
 
@@ -275,23 +343,23 @@ export const CalendarTab: React.FC<CalendarTabProps> = ({
 
         {/* Right Col: Selected Event Details & Full Semester List */}
         <div className="space-y-6">
-          {selectedEvent ? (
+          {activeSelectedEvent ? (
             <div className="bg-[#FFD700] p-5 sm:p-6 rounded-3xl border-4 border-black shadow-[6px_6px_0px_black] space-y-4">
               <div className="flex items-center justify-between border-b-2 border-black pb-2.5">
                 <span className="bg-[#FF4F81] text-white border border-black px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase">
                   Szczegóły Wybranego Zjazdu
                 </span>
-                <span className="text-xs font-black text-black uppercase">{selectedEvent.dayOfWeek}</span>
+                <span className="text-xs font-black text-black uppercase">{activeSelectedEvent.dayOfWeek}</span>
               </div>
 
               <div>
                 <h3 className="text-xl sm:text-2xl font-black text-black uppercase tracking-tight break-words">
-                  {selectedEvent.dateStr}
+                  {activeSelectedEvent.dateStr}
                 </h3>
                 <div className="mt-2 bg-white p-3 rounded-2xl border-2 border-black">
                   <span className="text-[10px] uppercase font-black text-gray-800 block">Temat Zajęć:</span>
                   <p className="text-xs sm:text-sm font-black text-black leading-snug break-words mt-0.5">
-                    {selectedEvent.isHoliday ? '🛑 Dzień wolny od zajęć szkolnych' : selectedEvent.topic || 'Zajęcia szkolne'}
+                    {activeSelectedEvent.isHoliday ? '🛑 Dzień wolny od zajęć szkolnych' : activeSelectedEvent.topic || 'Zajęcia szkolne'}
                   </p>
                 </div>
               </div>
@@ -302,7 +370,7 @@ export const CalendarTab: React.FC<CalendarTabProps> = ({
                     <Clock className="w-3.5 h-3.5 text-blue-600" />
                     <span>Godziny:</span>
                   </div>
-                  <span>{selectedEvent.time || '9:30 - 14:30'}</span>
+                  <span>{activeSelectedEvent.time || '9:30 - 14:30'}</span>
                 </div>
 
                 <div className="bg-white p-2.5 rounded-xl border-2 border-black">
@@ -310,17 +378,17 @@ export const CalendarTab: React.FC<CalendarTabProps> = ({
                     <MapPin className="w-3.5 h-3.5 text-rose-600" />
                     <span>Sala:</span>
                   </div>
-                  <span>{selectedEvent.room || 'Sala nr 14'}</span>
+                  <span>{activeSelectedEvent.room || 'Sala nr 14'}</span>
                 </div>
               </div>
 
               {/* Action Buttons: Jump to Games or Lesson Summary for this Saturday side-by-side */}
-              {!selectedEvent.isHoliday && (
+              {!activeSelectedEvent.isHoliday && (
                 <div className="space-y-2 pt-1">
                   <div className="grid grid-cols-1 gap-2">
                     {onNavigateToSummary && (
                       <button
-                        onClick={() => onNavigateToSummary(selectedEvent.dateStr)}
+                        onClick={() => onNavigateToSummary(activeSelectedEvent.dateStr)}
                         className="w-full bg-[#4F81FF] hover:bg-blue-600 text-white border-3 border-black font-black py-2.5 px-3 rounded-2xl text-xs uppercase flex items-center justify-center gap-2 shadow-[3px_3px_0px_black] active:scale-95 transition cursor-pointer"
                       >
                         <BookOpen className="w-4 h-4 text-yellow-300 shrink-0" />
@@ -330,7 +398,7 @@ export const CalendarTab: React.FC<CalendarTabProps> = ({
 
                     {onNavigateToGames && (
                       <button
-                        onClick={() => onNavigateToGames(selectedEvent.dateStr)}
+                        onClick={() => onNavigateToGames(activeSelectedEvent.dateStr)}
                         className="w-full bg-[#FF4F81] hover:bg-pink-600 text-white border-3 border-black font-black py-2.5 px-3 rounded-2xl text-xs uppercase flex items-center justify-center gap-2 shadow-[3px_3px_0px_black] active:scale-95 transition cursor-pointer"
                       >
                         <Gamepad2 className="w-4 h-4 text-yellow-300 shrink-0" />
@@ -342,8 +410,16 @@ export const CalendarTab: React.FC<CalendarTabProps> = ({
               )}
             </div>
           ) : (
-            <div className="bg-white p-6 rounded-3xl border-4 border-black shadow-[6px_6px_0px_black] text-center">
-              <p className="text-xs font-black text-gray-800">Kliknij wybraną sobotę w kalendarzu, aby zobaczyć temat zajęć!</p>
+            <div className="bg-white p-6 rounded-3xl border-4 border-black shadow-[6px_6px_0px_black] text-center space-y-3">
+              <div className="w-12 h-12 bg-yellow-200 rounded-2xl border-2 border-black flex items-center justify-center mx-auto shadow-[2px_2px_0px_black]">
+                <CalendarIcon className="w-6 h-6 text-black" />
+              </div>
+              <h4 className="text-base font-black uppercase text-black">
+                {POLISH_MONTHS[viewMonth]} {viewYear}
+              </h4>
+              <p className="text-xs font-bold text-gray-700 max-w-xs mx-auto">
+                Rok szkolny 2026/2027. Dokładny harmonogram zjazdów na ten miesiąc zostanie wkrótce ogłoszony przez szkołę.
+              </p>
             </div>
           )}
         </div>

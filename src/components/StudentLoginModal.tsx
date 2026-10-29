@@ -162,9 +162,11 @@ export const StudentLoginModal: React.FC<StudentLoginModalProps> = ({
                       }`}
                     >
                       <span className="text-2xl">{st.avatar}</span>
-                      <div className="truncate">
-                        <span className="text-xs font-black block truncate">{st.name}</span>
-                        <span className={`text-[10px] font-bold block ${isSelected ? 'text-yellow-200' : 'text-gray-600'}`}>
+                      <div className="min-w-0 flex-1">
+                        <span className="text-[11px] sm:text-xs font-black block leading-tight break-words [overflow-wrap:anywhere]">
+                          {st.name}
+                        </span>
+                        <span className={`text-[10px] font-bold block mt-0.5 ${isSelected ? 'text-yellow-200' : 'text-gray-600'}`}>
                           ⭐ {st.stars} gwiazdek
                         </span>
                       </div>

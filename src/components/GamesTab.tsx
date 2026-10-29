@@ -56,6 +56,89 @@ const getSaturdayCountDeclension = (count: number) => {
   return 'Zjazdów Sobotnich';
 };
 
+// Helper to filter out names and surnames of famous persons and historical figures
+const FAMOUS_PERSON_PATTERNS = [
+  /kopernik/i,
+  /curie/i,
+  /skłodowsk/i,
+  /chopin/i,
+  /matejko/i,
+  /kościuszk/i,
+  /mickiewicz/i,
+  /sienkiewicz/i,
+  /piłsudsk/i,
+  /sobiesk/i,
+  /wałęs/i,
+  /szymborsk/i,
+  /paderewsk/i,
+  /moniuszk/i,
+  /słowack/i,
+  /twardowsk/i,
+  /dratewk/i,
+  /kolumb/i,
+  /einstein/i,
+  /da vinci/i,
+  /mikołaj/i,
+  /fryderyk/i,
+  /tadeusz/i,
+  /kazimierz/i,
+  /jagiełł/i,
+  /chrobry/i,
+  /król\s+/i,
+  /królowa\s+/i,
+  /książę\s+/i,
+  /pan\s+twardow/i,
+  /lewandowsk/i,
+  /świątek/i,
+  /swiatek/i,
+  /robert\s+lewandow/i,
+  /iga\s+świątek/i,
+  /iga\s+swiatek/i,
+  /małysz/i,
+  /stoch/i,
+  /szczęsn/i,
+];
+
+const COMMON_NON_PERSON_PHRASES = new Set([
+  'orzeł biały',
+  'flaga polski',
+  'rzeka wisła',
+  'smok wawelski',
+  'syrenka warszawska',
+  'zamek królewski',
+  'zamek królewski na wawelu',
+  'morze bałtyckie',
+  'polskie tatry',
+  'alfabet polski',
+  'mazurek dąbrowskiego'
+]);
+
+const COMMON_FIRST_NAMES = new Set([
+  'jan', 'maria', 'anna', 'piotr', 'paweł', 'adam', 'mikołaj', 'stanisław',
+  'krzysztof', 'andrzej', 'tomasz', 'michał', 'marcin', 'jakub', 'aleksander',
+  'barbara', 'katarzyna', 'zofia', 'krystyna', 'elżbieta', 'magdalena', 'joanna',
+  'lech', 'fryderyk', 'tadeusz', 'henryk', 'ignacy', 'juliusz', 'wisława', 'józef',
+  'robert', 'iga'
+]);
+
+function isFamousPersonOrName(str: string): boolean {
+  if (!str) return false;
+  const trimmed = str.trim();
+  for (const pattern of FAMOUS_PERSON_PATTERNS) {
+    if (pattern.test(trimmed)) return true;
+  }
+  const parts = trimmed.split(/\s+/);
+  if (parts.length >= 2) {
+    const lower = trimmed.toLowerCase();
+    if (!COMMON_NON_PERSON_PHRASES.has(lower)) {
+      if (parts.some((p) => COMMON_FIRST_NAMES.has(p.toLowerCase()))) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 export const GamesTab: React.FC<GamesTabProps> = ({
   dailyTask,
   allDailyTasks,
@@ -198,6 +281,7 @@ export const GamesTab: React.FC<GamesTabProps> = ({
 
   // Extract unique preview words from this Saturday's games for visual chips
   // Exclude words separated by hyphens (e.g. syllable breakdowns like "WAR-SZA-WA")
+  // Exclude all names and surnames of famous persons
   const activeWordsList: string[] = [];
   if (activeGroup) {
     activeGroup.tasks.forEach((t) => {
@@ -205,9 +289,9 @@ export const GamesTab: React.FC<GamesTabProps> = ({
         t.spelling.forEach((s) => {
           const raw = (s.word || '').trim();
           const hasHyphen = /[-–—/]/.test(raw);
-          if (!hasHyphen && raw.length > 0) {
+          if (!hasHyphen && raw.length > 0 && !isFamousPersonOrName(raw)) {
             const clean = raw.toUpperCase();
-            if (!activeWordsList.includes(clean)) {
+            if (!activeWordsList.includes(clean) && !isFamousPersonOrName(clean)) {
               activeWordsList.push(clean);
             }
           }
@@ -216,9 +300,9 @@ export const GamesTab: React.FC<GamesTabProps> = ({
         t.wordSearch.words.forEach((w) => {
           const raw = (w.pl || '').trim();
           const hasHyphen = /[-–—/]/.test(raw);
-          if (!hasHyphen && raw.length > 0) {
+          if (!hasHyphen && raw.length > 0 && !isFamousPersonOrName(raw)) {
             const clean = raw.toUpperCase();
-            if (!activeWordsList.includes(clean)) {
+            if (!activeWordsList.includes(clean) && !isFamousPersonOrName(clean)) {
               activeWordsList.push(clean);
             }
           }

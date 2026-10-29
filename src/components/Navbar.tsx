@@ -57,9 +57,9 @@ export const Navbar: React.FC<NavbarProps> = ({
   ];
 
   return (
-    <header className="sticky top-0 z-40 bg-white border-b-4 border-black shadow-[0_4px_0px_black]">
+    <header className="sticky top-0 z-40 bg-white border-b-4 border-black shadow-[0_4px_0px_black] phone-landscape-header">
       {/* Top Announcement Bar */}
-      <div className="bg-black text-white px-3 sm:px-6 py-1.5 text-xs font-bold flex items-center justify-between border-b-2 border-black">
+      <div className="bg-black text-white px-3 sm:px-6 py-1.5 text-xs font-bold flex items-center justify-between border-b-2 border-black phone-landscape-hidden">
         <div className="flex items-center gap-2 overflow-hidden w-full justify-between sm:justify-start">
           <span className="bg-[#FF4F81] text-white border border-white px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-wider rotate-[-2deg] shrink-0">
             Walnut Creek
@@ -77,50 +77,49 @@ export const Navbar: React.FC<NavbarProps> = ({
       </div>
 
       {/* Main Navbar Title Header */}
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2.5 flex items-center justify-between gap-2 bg-white">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2.5 flex items-center justify-between gap-2 bg-white phone-landscape-row">
         {/* Logo & Title */}
         <div
           onClick={() => handleSelectTab('home')}
-          className="flex items-center gap-2.5 cursor-pointer group min-w-0"
+          className="flex items-center gap-2.5 cursor-pointer group min-w-0 shrink-0"
         >
-          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-[#FFD700] border-3 border-black flex items-center justify-center p-1 rotate-[-4deg] shadow-[3px_3px_0px_black] group-hover:rotate-0 transition-all shrink-0">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-[#FFD700] border-3 border-black flex items-center justify-center p-1 rotate-[-4deg] shadow-[3px_3px_0px_black] group-hover:rotate-0 transition-all shrink-0 phone-landscape-logo">
             <img src="/favicon.svg?v=2" alt="Logo Klasa 2" className="w-full h-full object-contain" />
           </div>
           <div className="min-w-0">
-            <h1 className="text-base sm:text-2xl font-black text-black uppercase tracking-tighter italic truncate leading-tight drop-shadow-[1px_1px_0px_#FF4F81]">
+            <h1 className="text-base sm:text-2xl font-black text-black uppercase tracking-tighter italic truncate leading-tight drop-shadow-[1px_1px_0px_#FF4F81] phone-landscape-title">
               Polska Szkoła Walnut Creek
             </h1>
-            <p className="text-[11px] text-gray-700 font-bold hidden sm:block italic">
+            <p className="text-[11px] text-gray-700 font-bold hidden sm:block italic phone-landscape-hidden">
               Strona Klasy 2 • Ważne Ogłoszenia, Kalendarz, Zadania i Materiały
             </p>
           </div>
         </div>
 
-        {/* Mobile Hamburger Menu Toggle Button */}
-        <div className="flex sm:hidden items-center gap-2">
+        {/* Mobile & Landscape Phone Hamburger Button (Icon Only) */}
+        <div className="flex phone-landscape-flex sm:hidden items-center gap-2">
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="p-2 bg-[#FFD700] text-black border-2 border-black rounded-xl font-black shadow-[2px_2px_0px_black] active:scale-95 transition cursor-pointer flex items-center gap-1.5"
-            aria-label="Menu nawigacyjne"
+            className="p-1.5 sm:p-2 bg-[#FFD700] text-black border-2 border-black rounded-xl font-black shadow-[2px_2px_0px_black] active:scale-95 transition cursor-pointer flex items-center justify-center shrink-0"
+            aria-label={isMobileMenuOpen ? "Zamknij menu" : "Otwórz menu"}
           >
             {isMobileMenuOpen ? (
               <X className="w-5 h-5 text-black" />
             ) : (
               <Menu className="w-5 h-5 text-black" />
             )}
-            <span className="text-xs font-black uppercase">Menu</span>
           </button>
         </div>
 
-        <div className="hidden sm:flex items-center gap-2">
+        <div className="hidden sm:flex items-center gap-2 phone-landscape-hidden">
           <span className="bg-yellow-100 border-2 border-black px-3 py-1 rounded-xl text-xs font-black text-black shadow-[2px_2px_0px_black]">
             Klasa 2 • Rok 2026/2027 🏫
           </span>
         </div>
       </div>
 
-      {/* Desktop Navigation Tabs Bar (hidden on small mobile screens) */}
-      <nav className="hidden sm:block bg-[#FFD700] border-t-4 border-black px-2 sm:px-6 py-2">
+      {/* Desktop Navigation Tabs Bar (hidden on small mobile screens and landscape phone) */}
+      <nav className="hidden sm:block bg-[#FFD700] border-t-4 border-black px-2 sm:px-6 py-2 phone-landscape-bottom-nav">
         <div className="max-w-5xl mx-auto flex items-center justify-center gap-2 sm:gap-3 flex-wrap">
           {navItems.map((item) => {
             const isSelected = activeTab === item.id;
@@ -142,13 +141,13 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
       </nav>
 
-      {/* Mobile Hamburger Dropdown Menu (shown when toggled on phone) */}
+      {/* Mobile & Landscape Hamburger Dropdown Menu (shown when toggled on phone) */}
       {isMobileMenuOpen && (
-        <nav className="sm:hidden bg-[#FFD700] border-t-4 border-black p-3 space-y-2 shadow-[0_6px_0px_black] animate-fade-in">
+        <nav className="sm:hidden phone-landscape-dropdown bg-[#FFD700] border-t-4 border-black p-3 space-y-2 shadow-[0_6px_0px_black] animate-fade-in">
           <p className="text-[10px] font-black uppercase tracking-wider text-black px-1 mb-1">
             Wybierz Zakładkę:
           </p>
-          <div className="grid grid-cols-1 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {navItems.map((item) => {
               const isSelected = activeTab === item.id;
               return (

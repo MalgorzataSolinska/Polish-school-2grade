@@ -1,1 +1,51 @@
 @import "tailwindcss";
+
+/* 
+  Ultra-compact navbar styles specifically for mobile phones held horizontally (landscape).
+  Active ONLY on mobile phones rotated horizontally (height <= 500px).
+  Leaves laptops, desktops, tablets, and portrait mobile phones completely untouched!
+*/
+@media (orientation: landscape) and (max-height: 500px) {
+  .phone-landscape-hidden {
+    display: none !important;
+  }
+
+  .phone-landscape-flex {
+    display: flex !important;
+  }
+
+  .phone-landscape-header {
+    border-bottom-width: 2px !important;
+    box-shadow: 0 2px 0px black !important;
+  }
+
+  .phone-landscape-row {
+    padding-top: 4px !important;
+    padding-bottom: 4px !important;
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+  }
+
+  .phone-landscape-logo {
+    width: 28px !important;
+    height: 28px !important;
+    border-radius: 8px !important;
+    border-width: 2px !important;
+    padding: 2px !important;
+  }
+
+  .phone-landscape-title {
+    font-size: 13px !important;
+    line-height: 1.1 !important;
+  }
+
+  .phone-landscape-bottom-nav {
+    display: none !important;
+  }
+
+  .phone-landscape-dropdown {
+    display: block !important;
+    max-height: calc(100vh - 44px) !important;
+    overflow-y: auto !important;
+  }
+}

@@ -373,9 +373,19 @@ export const MatchingGame: React.FC<MatchingGameProps> = ({
                     </div>
 
                     {/* Title */}
-                    <h4 className="text-xs sm:text-sm font-black text-black uppercase tracking-tight mt-2 px-1 line-clamp-1">
-                      {item.wordPl}
-                    </h4>
+                    <div className="mt-1.5 px-0.5 min-h-[34px] sm:min-h-[38px] flex items-center justify-center">
+                      <h4
+                        className={`font-black text-black uppercase tracking-tight text-center break-words [overflow-wrap:anywhere] hyphens-auto leading-tight ${
+                          item.wordPl.length > 20
+                            ? 'text-[10px] sm:text-xs'
+                            : item.wordPl.length > 13
+                            ? 'text-[11px] sm:text-xs md:text-sm'
+                            : 'text-xs sm:text-sm md:text-base'
+                        }`}
+                      >
+                        {item.wordPl}
+                      </h4>
+                    </div>
 
                     {/* Drop / Assigned Slot */}
                     <div
@@ -510,7 +520,7 @@ export const MatchingGame: React.FC<MatchingGameProps> = ({
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h5 className="font-black text-black text-xs uppercase">{item.wordPl}</h5>
+                    <h5 className="font-black text-black text-xs sm:text-sm uppercase break-words [overflow-wrap:anywhere] leading-snug">{item.wordPl}</h5>
                     <p className="text-[11px] text-gray-800 font-bold leading-tight mt-0.5">
                       {item.description}
                     </p>
